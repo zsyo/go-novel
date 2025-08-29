@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <!-- 移动端视口设置 -->
+  <meta content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1" name="viewport">
+  <!-- 安卓/Chrome Web App 全屏显示 -->
+  <meta content="yes" name="mobile-web-app-capable">
+  <!-- iOS Safari 全屏显示（保留兼容） -->
+  <meta content="yes" name="apple-mobile-web-app-capable">
+  <!-- 禁止 iOS 自动识别电话号码 -->
+  <meta content="telephone=no" name="format-detection">
+  <title>So Novel</title>
+  <link href="/favicon.ico" rel="icon" type="image/x-icon">
+  <link rel="stylesheet" href="/css/index.css">
+</head>
+<body>
+<div class="wrap-container">
+  <header class="header">
+    <h1 class="app-title">So Novel</h1>
+  </header>
+  <main class="main-content">
+    <section class="container download-container card" id="downloadContainer">
+      <h2 class="section-title">搜索书籍</h2>
+      <div class="search-container">
+        <input id="downloadSearchName" placeholder="请输入书名或作者，尽量输完整" aria-label="搜索书名或作者">
+        <button class="btn btn-primary btn-search" id="searchButton">搜索</button>
+      </div>
+      <div class="body-container">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th scope="col">序号</th>
+              <th scope="col">书名</th>
+              <th scope="col">作者</th>
+              <th scope="col">最新章节</th>
+              <th scope="col">最后更新时间</th>
+              <th scope="col">书源</th>
+              <th scope="col">操作</th>
+            </tr>
+            </thead>
+            <tbody id="downloadTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <section class="container result-container card">
+      <h2 class="section-title">已下书籍</h2>
+      <div class="search-container">
+        <button id="refreshList" class="btn btn-primary">刷新列表</button>
+      </div>
+      <div class="body-container">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th scope="col">文件名</th>
+              <th scope="col">文件大小</th>
+              <th scope="col">下载时间</th>
+              <th scope="col">操作</th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="loading-container" id="tipEle">
+  <div class="content">
+    <svg class="loading-icon" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="45" fill="none" stroke="#fff" stroke-width="8" stroke-dasharray="141.37 87.96"
+              stroke-linecap="round"></circle>
+    </svg>
+    <span class="text" id="tipText">正在下载</span>
+    <div class="progress-container" id="progressContainer" style="display: none;">
+      <div class="progress-bar" id="progressBar"></div>
+      <div class="progress-text" id="progressText">0%</div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // DOM 元素引用
+    const downloadContainer = document.getElementById('downloadContainer')
+    const downloadSearchName = document.getElementById('downloadSearchName')
+    const searchButton = document.getElementById('searchButton')
+    const refreshListButton = document.getElementById('refreshList')
+    const downloadTableBody = document.getElementById('downloadTableBody')
+    const tableBody = document.getElementById('tableBody')
+    const tipEle = document.getElementById('tipEle')
+    const tipText = document.getElementById('tipText')
+    const progressContainer = document.getElementById('progressContainer')
+    const progressBar = document.getElementById('progressBar')
+    const progressText = document.getElementById('progressText')
+
+    let bookCache = []
+    // 最新下载的书的文件名
+    let latestFileName = ''
+    // 下载状态
+    let isDownloading = false
+
+    // 工具函数
+    const showTip = (text = '正在加载...', showProgress = false) => {
+      tipText.innerHTML = text
+      tipEle.style.display = 'flex'
+      
+      // 显示或隐藏进度条
+      progressContainer.style.display = showProgress ? 'block' : 'none'
+      if (showProgress) {
+        // 重置进度条
+        updateProgress(0, 100)
+      }
+    }
+
+    const updateTip = (text) => {
+      tipText.innerHTML = text
+    }
+
+    const hideTip = () => {
+      tipEle.style.display = 'none'
+      isDownloading = false
+    }
+    
+    // 更新进度条
+    const updateProgress = (current, total) => {
+      if (total <= 0) return
+      
+      const percent = Math.round((current / total) * 100)
+      progressBar.style.width = `${percent}%`
+      progressText.textContent = `${percent}%(${current}/${total})`
+    }
+
+    const formatSize = (bytes) => {
+      if (bytes === 0) return '0.00 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      const sizeValue = (bytes / Math.pow(k, i)).toFixed(2)
+      return `${sizeValue} ${sizes[i]}`
+    }
+
+    const formatDate = (timestamp) => {
+      const date = new Date(timestamp)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })
+    }
+
+    // 事件处理函数
+    const handleDownloadFileToLocal = (name) => {
+      console.log('download to local', `《${name}》`)
+      window.open(`/api/book/download?filename=${encodeURIComponent(name)}`, '_blank')
+    }
+
+    const handleDeleteFile = async (name) => {
+      if (!confirm(`确定要删除文件《${name}》吗？`)) {
+        return
+      }
+      
+      showTip('正在删除文件...')
+      
+      try {
+        const response = await fetch(`/api/book?filename=${encodeURIComponent(name)}`, {
+          method: 'DELETE'
+        })
+        const result = await response.json()
+        
+        if (response.ok && result.message) {
+          updateTip('文件删除成功')
+          // 刷新列表
+          setTimeout(() => fetchLocalBooks(), 1000)
+        } else {
+          updateTip(`删除失败: ${result.error || '未知错误'}`)
+          setTimeout(hideTip, 2000)
+        }
+      } catch (error) {
+        console.error('删除文件失败:', error)
+        updateTip('删除文件失败')
+        setTimeout(hideTip, 2000)
+      }
+    }
+
+    const handleDownloadToServer = async (index) => {
+      const item = bookCache[index]
+      if (!item) {
+        alert('参数错误，请重新搜索')
+        return
+      }
+      
+      // 如果已经在下载中，不允许再次点击
+      if (isDownloading) {
+        alert('已有下载任务正在进行中，请等待完成')
+        return
+      }
+      
+      // 标记下载状态
+      isDownloading = true
+      
+      // 在发起请求前，显示弹窗、进度条
+      showTip(`正在解析目录...`, true)
+      const query = new URLSearchParams(item).toString()
+      
+      try {
+        // 发送下载请求
+        const response = await fetch(`/api/book/fetch?${query}`)
+        const result = await response.json()
+        if (result && result.message) {
+          updateTip(result.message)
+        }
+        
+        // 下载已经开始，后续进度更新和完成处理由SSE事件处理
+        console.log('下载请求已发送，等待SSE消息更新进度')
+      } catch (error) {
+        console.error('下载请求失败:', error)
+        updateTip('下载请求失败')
+        setTimeout(hideTip, 2000)
+        isDownloading = false
+      }
+    }
+
+    const renderDownloadTable = (data) => {
+      bookCache = data
+      downloadTableBody.innerHTML = data.map((item, index) => `
+      <tr>
+        <td data-label="序号">${index + 1}</td>
+        <td data-label="书名">${item.bookName}</td>
+        <td data-label="作者">${item.author}</td>
+        <td data-label="最新章节">${item.latestChapter || ''}</td>
+        <td data-label="最后更新时间">${item.lastUpdateTime || ''}</td>
+        <td data-label="书源">${item.sourceId}</td>
+        <td data-label="操作"><button class="btn btn-secondary btn-download" data-index="${index}">下载</button></td>
+      </tr>
+    `).join('')
+    }
+
+    const renderLocalBooksTable = (data) => {
+      tableBody.innerHTML = data.map(item => `
+      <tr>
+        <td data-label="文件名">${item.name}</td>
+        <td data-label="文件大小">${formatSize(item.size)}</td>
+        <td data-label="下载时间">${formatDate(item.timestamp)}</td>
+        <td data-label="操作">
+          <button class="btn btn-secondary btn-download" data-filename="${item.name}">下载</button>
+          <button class="btn btn-danger btn-delete" data-filename="${item.name}">删除</button>
+        </td>
+      </tr>
+    `).join('')
+    }
+
+    // 数据获取
+    const fetchLocalBooks = async (silent = false) => {
+      if (!silent) {
+        showTip('正在刷新列表...')
+      }
+      
+      try {
+        const response = await fetch('/api/local/books')
+        const data = await response.json()
+        console.log('local-books:', data)
+        if (data && data.data) {
+          data.data.sort((a, b) => b.timestamp - a.timestamp)
+          latestFileName = data.data.length > 0 ? data.data[0].name : ''
+          renderLocalBooksTable(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching file list:', error)
+        if (!silent) {
+          updateTip('刷新列表失败')
+        }
+      } finally {
+        if (!silent) {
+          hideTip()
+        }
+      }
+    }
+
+    const aggregatedSearch = async () => {
+      const value = downloadSearchName.value.trim()
+      if (!value) {
+        alert("请输入书名或作者！")
+        return
+      }
+      showTip('正在搜索...')
+      searchButton.disabled = true // 搜索时禁用按钮
+      downloadSearchName.disabled = true // 搜索时禁用输入框
+      try {
+        const response = await fetch(`/api/search/aggregated?kw=${encodeURIComponent(value)}`)
+        const data = await response.json()
+        console.log('search results', data)
+        if (data && data.data) {
+          renderDownloadTable(data.data)
+        }
+      } catch (error) {
+        console.error('Error searching files:', error)
+        updateTip('搜索失败')
+      } finally {
+        hideTip()
+        downloadContainer.classList.add('expanded')
+        searchButton.disabled = false // 搜索完成后启用按钮
+        downloadSearchName.disabled = false // 搜索完成后启用输入框
+      }
+    }
+
+    // SSE连接
+    const initSSE = () => {
+      // SSE连接状态管理
+      let reconnectAttempts = 0;
+      let reconnectDelay = 1000; // 初始重连延迟1秒
+      const MAX_RECONNECT_ATTEMPTS = 5; // 最大重连次数
+      const MAX_RECONNECT_DELAY = 30000; // 最大重连延迟30秒
+      let sseConnected = false;
+      let sseInstance = null;
+      
+      // 创建并连接SSE
+      const connectSSE = () => {
+        // 如果已经超过最大重连次数，停止重连
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          console.warn(`已达到最大重连次数(${MAX_RECONNECT_ATTEMPTS})，停止重连SSE`)
+          // 如果正在显示下载进度，通知用户
+          if (isDownloading) {
+            updateTip('服务器连接失败，下载已中断。请刷新页面重试。')
+            setTimeout(hideTip, 5000)
+          }
+          return;
+        }
+        
+        const {hostname, port, protocol} = window.location
+        const sseProtocol = protocol.startsWith('https') ? 'https' : 'http'
+        
+        // 关闭之前的连接
+        if (sseInstance) {
+          sseInstance.close();
+          sseInstance = null;
+        }
+        
+        // 创建新连接
+        sseInstance = new EventSource(`${sseProtocol}://${hostname}:${port}/sse/book/progress`)
+        
+        // 下载完成事件
+        let downloadCompleted = false
+        
+        // 设置下载超时检测
+        let progressTimeout = null
+        let lastProgressUpdate = Date.now() // 初始化为当前时间
+        const MAX_PROGRESS_TIMEOUT = 15000 // 15秒无响应则认为下载失败
+        
+        const checkProgressTimeout = () => {
+          // 清除之前的超时定时器
+          if (progressTimeout) {
+            clearTimeout(progressTimeout)
+          }
+          
+          // 如果正在下载，设置超时检测
+          if (isDownloading && !downloadCompleted) {
+            progressTimeout = setTimeout(() => {
+              // 检查是否超过最大超时时间
+              const now = Date.now()
+              if (now - lastProgressUpdate > MAX_PROGRESS_TIMEOUT) {
+                console.error('下载超时，可能已断开连接')
+                updateTip('下载超时，请刷新页面重试')
+                // 3秒后关闭提示
+                setTimeout(() => {
+                  hideTip()
+                  isDownloading = false
+                }, 3000)
+              } else {
+                // 继续检测
+                checkProgressTimeout()
+              }
+            }, 5000) // 每5秒检测一次
+          }
+        }
+        
+        // 连接建立成功
+        sseInstance.onopen = () => {
+          console.log('SSE连接已建立')
+          sseConnected = true;
+          reconnectAttempts = 0; // 重置重连尝试次数
+          reconnectDelay = 1000; // 重置重连延迟
+          lastProgressUpdate = Date.now(); // 更新最后活动时间
+        }
+        
+        sseInstance.onmessage = (e) => {
+          if (e.data === ':heartbeat') {
+            // 心跳包，更新最后活动时间
+            lastProgressUpdate = Date.now()
+            return
+          }
+          
+          // 特殊处理纯文本消息
+          if (e.data === 'connected') {
+            console.log('SSE连接成功，收到初始连接消息')
+            return
+          }
+          
+          try {
+            const data = JSON.parse(e.data)
+            
+            // 处理错误消息
+            if (data.type === 'book-download-error') {
+              // 显示错误信息
+              updateTip(`下载出错: ${data.message}`)
+              console.error('下载出错:', data.message)
+              // 停止下载状态
+              isDownloading = false
+              // 3秒后隐藏提示
+              setTimeout(hideTip, 3000)
+              return
+            }
+            
+            // 处理普通进度消息
+            if (data.type === 'book-download') {
+              // 更新最后活动时间
+              lastProgressUpdate = Date.now()
+              
+              // 启动超时检测
+              checkProgressTimeout()
+              
+              // 确保正在下载中
+              if (!isDownloading) {
+                isDownloading = true
+                showTip('正在下载章节...', true)
+              }
+              
+              // 更新下载进度
+              if (data.index > 0 && data.total > 0) {
+                // 更新进度条和文本
+                updateProgress(data.index, data.total)
+                
+                // 更新提示文本，包含进度百分比
+                const percent = Math.round((data.index / data.total) * 100)
+                updateTip(`正在下载章节 ${percent}%(${data.index}/${data.total})`)
+                
+                // 检查是否下载完成
+                if (data.index >= data.total && !downloadCompleted) {
+                  updateTip('所有章节下载完成，准备处理文件...')
+                }
+              }
+            }
+            
+            // 处理下载完成消息
+            if (data.type === 'book-download-complete' && !downloadCompleted) {
+              downloadCompleted = true
+              // 清除超时定时器
+              if (progressTimeout) {
+                clearTimeout(progressTimeout)
+                progressTimeout = null
+              }
+              updateTip('下载完成，准备处理文件...')
+              
+              // 确保进度条显示100%
+              if (data.total > 0) {
+                updateProgress(data.total, data.total)
+              }
+              
+              // 等待服务器处理文件
+              setTimeout(() => {
+                // 静默刷新书籍列表
+                fetchLocalBooks(true).then(() => {
+                  if (latestFileName) {
+                    updateTip('下载完成，即将开始下载文件...')
+                    
+                    // 延迟一秒后开始下载，确保UI更新完成
+                    setTimeout(() => {
+                      hideTip()
+                      window.location.href = `/api/book/download?filename=${encodeURIComponent(latestFileName)}`;
+                      // 重置下载完成标志
+                      downloadCompleted = false
+                    }, 1000)
+                  } else {
+                    updateTip('下载完成！')
+                    setTimeout(hideTip, 2000)
+                    
+                    // 重置下载完成标志
+                    downloadCompleted = false
+                  }
+                })
+              }, 1000)
+            }
+          } catch (error) {
+            console.error('解析SSE消息错误:', error, '原始消息:', e.data)
+            // 尝试处理非JSON格式的消息，避免影响用户体验
+            if (e.data && typeof e.data === 'string') {
+              if (e.data.includes('error') || e.data.includes('错误')) {
+                // 简单显示错误消息
+                updateTip('服务器发送了错误消息: ' + e.data)
+              }
+            }
+          }
+        }
+        
+        // 连接错误处理
+        sseInstance.onerror = (error) => {
+          console.error('SSE连接错误:', error)
+          sseConnected = false;
+          
+          // 如果正在下载，显示连接中断提示
+          if (isDownloading) {
+            updateTip(`服务器连接中断，正在尝试重连(${reconnectAttempts+1}/${MAX_RECONNECT_ATTEMPTS})...`)
+          }
+          
+          // 关闭当前连接
+          sseInstance.close()
+          sseInstance = null
+          
+          // 使用指数退避算法重连
+          reconnectAttempts++;
+          // 计算下次重连延迟（指数增长但不超过最大值）
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+          
+          console.log(`将在 ${reconnectDelay/1000} 秒后尝试第 ${reconnectAttempts} 次重连`)
+          
+          // 延迟重连
+          setTimeout(() => {
+            connectSSE();
+          }, reconnectDelay);
+        }
+      }
+      
+      // 初始连接
+      connectSSE();
+      
+      // 添加页面可见性变化监听，页面变为可见时检查连接状态
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && !sseConnected && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          console.log('页面重新可见，检查SSE连接状态');
+          // 重置重连参数，重新尝试连接
+          reconnectAttempts = 0;
+          reconnectDelay = 1000;
+          connectSSE();
+        }
+      });
+      
+      // 添加窗口事件，在窗口关闭前清理资源
+      window.addEventListener('beforeunload', () => {
+        if (sseInstance) {
+          sseInstance.close();
+          sseInstance = null;
+        }
+      });
+      
+      // 返回连接控制函数，供外部调用
+      return {
+        connect: () => {
+          // 在重新连接前先关闭现有连接
+          if (sseInstance) {
+            sseInstance.close();
+            sseInstance = null;
+          }
+          // 重置重连尝试次数
+          reconnectAttempts = 0;
+          reconnectDelay = 1000;
+          // 尝试重新连接
+          connectSSE();
+        },
+        isConnected: () => sseConnected,
+        getReconnectAttempts: () => reconnectAttempts,
+        resetReconnectAttempts: () => {
+          reconnectAttempts = 0;
+          reconnectDelay = 1000;
+        }
+      };
+    }
+
+    // 初始化SSE连接
+    const sseController = initSSE();
+    
+    // 添加用户主动重连功能
+    const reconnectSSE = () => {
+      // 尝试重新连接
+      sseController.connect();
+      // 显示重连提示（只有在没有下载任务时才显示）
+      if (!isDownloading) {
+        showTip('正在重新连接服务器...');
+        setTimeout(hideTip, 1000);
+      }
+    }
+
+    // 事件绑定
+    searchButton.addEventListener('click', aggregatedSearch)
+    
+    downloadSearchName.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        aggregatedSearch()
+      }
+    })
+    
+    refreshListButton.addEventListener('click', () => {
+      // 用户点击刷新按钮时，尝试重新连接SSE
+      if (sseController.getReconnectAttempts() >= 5) {
+        reconnectSSE();
+      }
+      fetchLocalBooks()
+    });
+    
+    // 委托事件监听，用于下载按钮
+    document.addEventListener('click', (e) => {
+      const target = e.target
+      
+      // 检查是否点击的是下载按钮
+      if (target.classList.contains('btn-download')) {
+        const filename = target.getAttribute('data-filename')
+        if (filename) {
+          // 下载本地文件
+          handleDownloadFileToLocal(filename)
+        } else {
+          // 下载到服务器
+          const index = parseInt(target.getAttribute('data-index'))
+          if (!isNaN(index)) {
+            // 在发起下载前检查SSE连接状态
+            if (sseController.getReconnectAttempts() >= 5) {
+              // 如果连接已断开，尝试重新连接
+              reconnectSSE();
+            }
+            handleDownloadToServer(index)
+          }
+        }
+      }
+      
+      // 检查是否点击的是删除按钮
+      if (target.classList.contains('btn-delete')) {
+        const filename = target.getAttribute('data-filename')
+        if (filename) {
+          handleDeleteFile(filename)
+        }
+      }
+    })
+
+    // 初始化
+    fetchLocalBooks()
+  })
+</script>
+</body>
+</html>

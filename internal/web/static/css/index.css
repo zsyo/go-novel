@@ -1,0 +1,403 @@
+/* 基础重置样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #f0f0f0;
+  color: #333;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* 容器样式 */
+.wrap-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+  width: 100%;
+}
+
+/* 头部样式 */
+.header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 25px 0;
+  background: linear-gradient(to right, #7747cf, #5d7bf9);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.app-title {
+  color: white;
+  font-size: 2.2rem;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 主要内容区域 */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 卡片样式 */
+.card {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+/* 容器样式 */
+.container {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 10px 15px;
+  color: #333;
+  background-color: #f8f8f8;
+  border-left: 4px solid #5d7bf9;
+  margin: 0;
+}
+
+/* 搜索容器 */
+.search-container {
+  display: flex;
+  gap: 10px;
+  margin: 15px;
+  flex-wrap: wrap;
+}
+
+#downloadSearchName {
+  flex: 1;
+  min-width: 200px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+#downloadSearchName:focus {
+  outline: none;
+  border-color: #5d7bf9;
+  box-shadow: 0 0 0 2px rgba(93, 123, 249, 0.2);
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: #5d7bf9;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #4a67e3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary {
+  background-color: #5d7bf9;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #4a67e3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.btn-search {
+  background-color: #5d7bf9;
+}
+
+.btn-search:hover {
+  background-color: #4a67e3;
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c0392b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 表格样式 */
+.table-responsive {
+  overflow-x: auto;
+  padding: 0 15px 15px 15px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 14px;
+  border: 1px solid #ddd;
+}
+
+.data-table thead {
+  background-color: #5d7bf9;
+  color: white;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.data-table th {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f0f8ff;
+}
+
+/* 交替行颜色 */
+.data-table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: #f2f7fa;
+}
+
+/* 响应式表格 */
+@media (max-width: 768px) {
+  .data-table,
+  .data-table thead,
+  .data-table tbody,
+  .data-table th,
+  .data-table td,
+  .data-table tr {
+    display: block;
+  }
+
+  .data-table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .data-table tr {
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: white;
+  }
+
+  .data-table td {
+    border: none;
+    position: relative;
+    padding-left: 50% !important;
+  }
+
+  .data-table td:before {
+    content: attr(data-label) ": ";
+    position: absolute;
+    left: 15px;
+    width: 45%;
+    font-weight: bold;
+    text-align: left;
+  }
+}
+
+/* 加载提示样式 */
+.loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-container .content {
+  text-align: center;
+  color: white;
+  background-color: rgba(30, 30, 30, 0.9);
+  padding: 20px 30px;
+  border-radius: 4px;
+  max-width: 90%;
+  width: 400px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-icon {
+  width: 40px;
+  height: 40px;
+  animation: rotate 1.5s linear infinite;
+  margin-bottom: 15px;
+  align-self: center;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.text {
+  font-size: 16px;
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+/* 进度条样式 */
+.progress-container {
+  width: 100%;
+  height: 18px;
+  background-color: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 15px 0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #5d7bf9 0%, #7747cf 100%);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 14px;
+  color: #eee;
+  margin-top: 5px;
+  text-align: center;
+}
+
+/* 扩展容器 */
+.download-container.expanded {
+  flex: 1;
+}
+
+/* 章节列表进度表 - 隐藏 */
+.chapter-list {
+  display: none !important;
+  max-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.chapter-item {
+  display: none !important;
+  visibility: hidden;
+}
+
+.chapter-item:last-child {
+  border-bottom: none;
+}
+
+.chapter-item.success {
+  color: #5d7bf9;
+}
+
+.chapter-item.failed {
+  color: #e74c3c;
+}
+
+.chapter-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chapter-status {
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .wrap-container {
+    padding: 10px;
+  }
+
+  .header {
+    padding: 15px 0;
+  }
+
+  .app-title {
+    font-size: 2rem;
+  }
+
+  .card {
+    padding: 15px;
+  }
+
+  .search-container {
+    flex-direction: column;
+  }
+
+  #downloadSearchName,
+  .btn {
+    width: 100%;
+  }
+  
+  .loading-container .content {
+    width: 90%;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-title {
+    font-size: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+  }
+
+  .btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+  
+  .progress-container {
+    height: 15px;
+  }
+  
+  .progress-text {
+    font-size: 12px;
+  }
+}
