@@ -25,6 +25,16 @@ func BookFetch(c *gin.Context) {
 	author := c.Query("author")
 	bookUrl := c.Query("url")
 	sourceId, _ := strconv.Atoi(c.Query("sourceId"))
+	// 获取format参数，默认为epub
+	format := c.Query("format")
+	if format == "" {
+		format = "epub"
+	}
+	// 验证format参数
+	if format != "epub" && format != "txt" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "不支持的格式，仅支持epub和txt"})
+		return
+	}
 
 	if bookName == "" || bookUrl == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "书名或URL不能为空"})
@@ -37,6 +47,8 @@ func BookFetch(c *gin.Context) {
 	// 设置下载配置
 	downloadCfg := *cfg // 复制一份配置
 	downloadCfg.Source.SourceId = sourceId
+	// 设置文件格式
+	downloadCfg.Download.ExtName = format
 
 	// 确保下载目录存在
 	if !util.FileExists(cfg.Download.DownloadPath) {
@@ -63,6 +75,7 @@ func BookFetch(c *gin.Context) {
 		"bookName": bookName,
 		"author":   author,
 		"sourceId": sourceId,
+		"format":   format,
 	})
 }
 

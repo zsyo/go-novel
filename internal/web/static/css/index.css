@@ -401,3 +401,27 @@ body {
     font-size: 12px;
   }
 }
+
+/* 下载按钮组样式 */
+.btn-download-epub,
+.btn-download-txt {
+  margin-right: 5px;
+  margin-bottom: 5px;
+  min-width: 80px;
+}
+
+.btn-download-epub {
+  background-color: #5d7bf9;
+}
+
+.btn-download-txt {
+  background-color: #4CAF50;
+}
+
+.btn-download-epub:hover {
+  background-color: #4a67e3;
+}
+
+.btn-download-txt:hover {
+  background-color: #3e9142;
+}

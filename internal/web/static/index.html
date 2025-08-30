@@ -190,7 +190,7 @@
       }
     }
 
-    const handleDownloadToServer = async (index) => {
+    const handleDownloadToServer = async (index, format = 'epub') => {
       const item = bookCache[index]
       if (!item) {
         alert('参数错误，请重新搜索')
@@ -208,7 +208,11 @@
       
       // 在发起请求前，显示弹窗、进度条
       showTip(`正在解析目录...`, true)
-      const query = new URLSearchParams(item).toString()
+      
+      // 构建查询参数，添加format参数
+      const params = new URLSearchParams(item)
+      params.append('format', format)
+      const query = params.toString()
       
       try {
         // 发送下载请求
@@ -238,7 +242,10 @@
         <td data-label="最新章节">${item.latestChapter || ''}</td>
         <td data-label="最后更新时间">${item.lastUpdateTime || ''}</td>
         <td data-label="书源">${item.sourceId}</td>
-        <td data-label="操作"><button class="btn btn-secondary btn-download" data-index="${index}">下载</button></td>
+        <td data-label="操作">
+        <button class="btn btn-secondary btn-download-epub" data-index="${index}">下载EPUB</button>
+        <button class="btn btn-secondary btn-download-txt" data-index="${index}">下载TXT</button>
+      </td>
       </tr>
     `).join('')
     }
@@ -607,24 +614,42 @@
     document.addEventListener('click', (e) => {
       const target = e.target
       
-      // 检查是否点击的是下载按钮
+      // 检查是否点击的是下载EPUB按钮
+      if (target.classList.contains('btn-download-epub')) {
+        const index = parseInt(target.getAttribute('data-index'))
+        if (!isNaN(index)) {
+          // 在发起下载前检查SSE连接状态
+          if (sseController.getReconnectAttempts() >= 5) {
+            // 如果连接已断开，尝试重新连接
+            reconnectSSE();
+          }
+          handleDownloadToServer(index, 'epub')
+        }
+        return
+      }
+      
+      // 检查是否点击的是下载TXT按钮
+      if (target.classList.contains('btn-download-txt')) {
+        const index = parseInt(target.getAttribute('data-index'))
+        if (!isNaN(index)) {
+          // 在发起下载前检查SSE连接状态
+          if (sseController.getReconnectAttempts() >= 5) {
+            // 如果连接已断开，尝试重新连接
+            reconnectSSE();
+          }
+          handleDownloadToServer(index, 'txt')
+        }
+        return
+      }
+      
+      // 检查是否点击的是当前已下载文件的下载按钮
       if (target.classList.contains('btn-download')) {
         const filename = target.getAttribute('data-filename')
         if (filename) {
           // 下载本地文件
           handleDownloadFileToLocal(filename)
-        } else {
-          // 下载到服务器
-          const index = parseInt(target.getAttribute('data-index'))
-          if (!isNaN(index)) {
-            // 在发起下载前检查SSE连接状态
-            if (sseController.getReconnectAttempts() >= 5) {
-              // 如果连接已断开，尝试重新连接
-              reconnectSSE();
-            }
-            handleDownloadToServer(index)
-          }
         }
+        return
       }
       
       // 检查是否点击的是删除按钮

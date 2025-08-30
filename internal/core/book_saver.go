@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"so-novel/internal/config"
 	"so-novel/internal/model"
 	"so-novel/internal/util"
 
@@ -21,7 +20,7 @@ import (
 // saveBook 保存书籍
 func (c *Crawler) saveBook(book *model.Book, chapters []model.Chapter) error {
 	// 获取配置
-	cfg := config.GetConfig()
+	cfg := c.config
 
 	// 创建下载目录
 	downloadDir, err := util.CreateDownloadDir(cfg.Download.DownloadPath, book.BookName, book.Author, cfg.Download.ExtName)
