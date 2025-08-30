@@ -35,6 +35,8 @@ func BookFetch(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "不支持的格式，仅支持epub和txt"})
 		return
 	}
+	// 获取下载ID参数
+	downloadId := c.Query("downloadId")
 
 	if bookName == "" || bookUrl == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "书名或URL不能为空"})
@@ -49,6 +51,8 @@ func BookFetch(c *gin.Context) {
 	downloadCfg.Source.SourceId = sourceId
 	// 设置文件格式
 	downloadCfg.Download.ExtName = format
+	// 设置下载ID
+	downloadCfg.Download.DownloadId = downloadId
 
 	// 确保下载目录存在
 	if !util.FileExists(cfg.Download.DownloadPath) {
@@ -287,4 +291,31 @@ func DeleteBook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "文件删除成功",
 	})
+}
+
+// StopDownload 停止下载处理函数
+func StopDownload(c *gin.Context) {
+	downloadId := c.Query("downloadId")
+	if downloadId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "下载ID不能为空"})
+		return
+	}
+
+	log.Printf("收到停止下载请求，下载ID: %s", downloadId)
+
+	// 获取下载管理器实例
+	downloadManager := core.GetDownloadManager()
+
+	// 尝试取消下载任务
+	if downloadManager.CancelTask(downloadId) {
+		log.Printf("成功取消下载任务，下载ID: %s", downloadId)
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("下载任务已停止，下载ID: %s", downloadId),
+		})
+	} else {
+		log.Printf("未找到下载任务，下载ID: %s", downloadId)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("未找到下载任务，下载ID: %s", downloadId),
+		})
+	}
 }

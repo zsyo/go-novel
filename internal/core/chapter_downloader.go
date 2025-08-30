@@ -42,6 +42,18 @@ func (c *Crawler) downloadChapters(book *model.Book, chapters []model.Chapter, r
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// 如果有下载ID，将任务添加到管理器
+	if c.config.Download.DownloadId != "" {
+		downloadManager := GetDownloadManager()
+		downloadManager.AddTask(c.config.Download.DownloadId, ctx, cancel)
+		fmt.Printf("任务已添加到下载管理器，下载ID: %s\n", c.config.Download.DownloadId)
+		// 确保在函数结束时移除任务
+		defer func() {
+			downloadManager.RemoveTask(c.config.Download.DownloadId)
+			fmt.Printf("任务已从下载管理器移除，下载ID: %s\n", c.config.Download.DownloadId)
+		}()
+	}
+
 	// 创建信号量控制并发
 	sem := make(chan struct{}, threads)
 	// 使用WaitGroup等待所有goroutine完成
@@ -64,6 +76,7 @@ exit:
 		select {
 		case <-ctx.Done():
 			// context已取消，停止创建新的goroutine
+			fmt.Println("检测到下载取消信号，停止创建新的下载任务")
 			break exit
 		default:
 		}
@@ -86,7 +99,7 @@ exit:
 			}
 
 			// 下载章节内容
-			content, err := c.downloadChapterContent(chapters[idx].URL, rule)
+			content, err := c.downloadChapterContent(ctx, chapters[idx].URL, rule)
 			if err != nil {
 				errMsg := fmt.Sprintf("下载章节失败 %s: %v", chapters[idx].Title, err)
 				errChan <- errors.New(errMsg)
@@ -122,11 +135,11 @@ exit:
 	// 检查是否因章节错误而取消
 	select {
 	case <-ctx.Done():
-		// context被取消，说明有章节下载失败
-		fmt.Println("由于章节下载失败，下载已被取消")
+		// context被取消，说明有章节下载失败或用户手动取消
+		fmt.Println("下载已被取消，可能是因为章节下载失败或用户手动取消")
 		// 发送错误消息而不是完成消息
-		sendError("下载失败，请尝试其它书源")
-		return errors.New("章节下载失败，下载已取消")
+		sendError("下载已被取消")
+		return errors.New("下载已被取消")
 	default:
 	}
 
@@ -143,7 +156,7 @@ exit:
 		elapsed.Seconds(), completed, errCount)
 
 	// 保存书籍
-	err := c.saveBook(book, chapters)
+	err := c.saveBook(ctx, book, chapters)
 	if err != nil {
 		// 发送错误消息
 		sendError(fmt.Sprintf("保存书籍失败: %v", err))
@@ -157,9 +170,9 @@ exit:
 }
 
 // downloadChapterContent 下载章节内容
-func (c *Crawler) downloadChapterContent(chapterUrl string, rule *model.Rule) (string, error) {
+func (c *Crawler) downloadChapterContent(ctx context.Context, chapterUrl string, rule *model.Rule) (string, error) {
 	// 发起HTTP请求（带重试机制）
-	resp, err := c.getWithRetry(chapterUrl)
+	resp, err := c.getWithRetry(ctx, chapterUrl)
 	if err != nil {
 		return "", err
 	}
@@ -191,7 +204,7 @@ func (c *Crawler) downloadChapterContent(chapterUrl string, rule *model.Rule) (s
 }
 
 // getWithRetry 带重试机制的HTTP GET请求
-func (c *Crawler) getWithRetry(url string) (*http.Response, error) {
+func (c *Crawler) getWithRetry(ctx context.Context, url string) (*http.Response, error) {
 	var resp *http.Response
 	var err error
 
@@ -231,7 +244,17 @@ func (c *Crawler) getWithRetry(url string) (*http.Response, error) {
 		if maxInterval > minInterval {
 			interval = minInterval + rand.Intn(maxInterval-minInterval)
 		}
-		time.Sleep(time.Duration(interval) * time.Millisecond)
+
+		// 睡眠时也检查context是否已取消
+		sleepTimer := time.NewTimer(time.Duration(interval) * time.Millisecond)
+		select {
+		case <-sleepTimer.C:
+			// 睡眠完成，继续重试
+		case <-ctx.Done():
+			// context已取消，停止睡眠并返回错误
+			sleepTimer.Stop()
+			return nil, ctx.Err()
+		}
 
 		fmt.Printf("重试下载章节 %s (第 %d/%d 次)\n", url, i+1, maxRetries)
 

@@ -25,6 +25,7 @@ type DownloadConfig struct {
 	DownloadPath         string `mapstructure:"download-path"`
 	ExtName              string `mapstructure:"extname"`
 	PreserveChapterCache int    `mapstructure:"preserve-chapter-cache"`
+	DownloadId           string `mapstructure:"download-id"` // 添加下载ID字段
 }
 
 type SourceConfig struct {

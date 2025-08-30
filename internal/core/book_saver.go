@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -18,7 +19,7 @@ import (
 )
 
 // saveBook 保存书籍
-func (c *Crawler) saveBook(book *model.Book, chapters []model.Chapter) error {
+func (c *Crawler) saveBook(ctx context.Context, book *model.Book, chapters []model.Chapter) error {
 	// 获取配置
 	cfg := c.config
 
@@ -44,7 +45,7 @@ func (c *Crawler) saveBook(book *model.Book, chapters []model.Chapter) error {
 		}
 	case "epub":
 		// EPUB合并实现
-		err = c.mergeToEpub(downloadDir, book, cfg.Download.DownloadPath)
+		err = c.mergeToEpub(ctx, downloadDir, book, cfg.Download.DownloadPath)
 		if err != nil {
 			return fmt.Errorf("EPUB格式合并失败: %v", err)
 		}
@@ -203,7 +204,14 @@ func (c *Crawler) cleanHtmlTags(html string) string {
 }
 
 // mergeToEpub 合并为EPUB文件
-func (c *Crawler) mergeToEpub(chapterDir string, book *model.Book, downloadPath string) error {
+func (c *Crawler) mergeToEpub(ctx context.Context, chapterDir string, book *model.Book, downloadPath string) error {
+	// 检查context是否已取消
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// 确保书名和作者不为空
 	fmt.Printf("Debug: 开始生成EPUB文件，原始书名: '%s', 原始作者: '%s'\n", book.BookName, book.Author)
 
@@ -246,7 +254,7 @@ func (c *Crawler) mergeToEpub(chapterDir string, book *model.Book, downloadPath 
 		fmt.Printf("Debug: 尝试添加封面图片: %s\n", book.CoverUrl)
 
 		// 下载并添加封面图片，但不添加为内容页
-		tempCoverFile := c.downloadAndAddCoverImage(book.CoverUrl, epub)
+		tempCoverFile := c.downloadAndAddCoverImage(ctx, book.CoverUrl, epub)
 		if tempCoverFile != "" {
 			// 记录临时文件路径，以便后续清理
 			tempFiles = append(tempFiles, tempCoverFile)
@@ -323,6 +331,13 @@ p {
 	for _, file := range chapterFiles {
 		if file.IsDir() {
 			continue
+		}
+
+		// 检查context是否已取消
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
 
 		// 读取章节内容
@@ -474,9 +489,9 @@ func processParagraphs(text string) []string {
 }
 
 // downloadAndAddCoverImage 下载并添加封面图片，但不添加为内容页
-func (c *Crawler) downloadAndAddCoverImage(coverUrl string, epub *epub.Epub) string {
+func (c *Crawler) downloadAndAddCoverImage(ctx context.Context, coverUrl string, epub *epub.Epub) string {
 	// 下载封面图片（带重试机制）
-	coverResp, err := c.getWithRetry(coverUrl)
+	coverResp, err := c.getWithRetry(ctx, coverUrl)
 	if err != nil || coverResp.StatusCode != 200 {
 		fmt.Printf("Debug: 下载封面图片失败: %v\n", err)
 		return ""

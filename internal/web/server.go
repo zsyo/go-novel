@@ -106,6 +106,7 @@ func StartServer(cfg *config.Config) {
 		api.GET("/search/aggregated", handler.AggregatedSearch)
 		api.GET("/book/fetch", handler.BookFetch)
 		api.GET("/book/download", handler.BookDownload)
+		api.POST("/book/stop-download", handler.StopDownload) // 添加停止下载API端点
 		api.GET("/book/download-url", func(c *gin.Context) {
 			filename := c.Query("filename")
 			if filename == "" {
