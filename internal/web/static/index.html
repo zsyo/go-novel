@@ -103,6 +103,8 @@
     let latestFileName = ''
     // 下载状态
     let isDownloading = false
+    // 全局SSE连接状态
+    let globalSseConnected = false
 
     // 工具函数
     const showTip = (text = '正在加载...', showProgress = false) => {
@@ -123,7 +125,8 @@
 
     const hideTip = () => {
       tipEle.style.display = 'none'
-      isDownloading = false
+      // 注意：不在这里重置isDownloading状态，因为有时候我们需要手动控制这个状态
+      // isDownloading = false 已移至其它地方显式设置
     }
     
     // 更新进度条
@@ -191,44 +194,105 @@
     }
 
     const handleDownloadToServer = async (index, format = 'epub') => {
-      const item = bookCache[index]
+      // 直接在控制台打印更详细的调试信息
+      console.log(`准备下载书籍，索引: ${index}, 格式: ${format}`);
+      
+      // 检查是否有数据
+      const item = bookCache[index];
       if (!item) {
-        alert('参数错误，请重新搜索')
-        return
+        alert('参数错误，请重新搜索');
+        return;
       }
       
-      // 如果已经在下载中，不允许再次点击
+      // 检查是否已经在下载中
       if (isDownloading) {
-        alert('已有下载任务正在进行中，请等待完成')
-        return
+        alert('已有下载任务正在进行中，请等待完成');
+        return;
       }
       
-      // 标记下载状态
-      isDownloading = true
-      
-      // 在发起请求前，显示弹窗、进度条
-      showTip(`正在解析目录...`, true)
-      
-      // 构建查询参数，添加format参数
-      const params = new URLSearchParams(item)
-      params.append('format', format)
-      const query = params.toString()
-      
-      try {
-        // 发送下载请求
-        const response = await fetch(`/api/book/fetch?${query}`)
-        const result = await response.json()
-        if (result && result.message) {
-          updateTip(result.message)
+      // 检查SSE连接状态
+      const checkSSEConnection = () => {
+        console.log('检查SSE连接状态: ', globalSseConnected);
+        // 强制更新一次全局状态
+        globalSseConnected = sseController.isConnected();
+        
+        if (!globalSseConnected) {
+          console.log('检测到SSE连接已断开，尝试重新连接');
+          // 重试连接
+          reconnectSSE();
+          showTip('正在连接服务器...');
+          
+          // 2秒后再次检查
+          setTimeout(() => {
+            globalSseConnected = sseController.isConnected();
+            console.log('重连后的SSE状态: ', globalSseConnected);
+            
+            if (!globalSseConnected) {
+              // 还是无法连接
+              updateTip('无法连接服务器，请刷新页面重试');
+              setTimeout(hideTip, 2000);
+            } else {
+              // 连接成功，开始下载
+              startDownload();
+            }
+          }, 2000);
+          
+          return false;
         }
         
-        // 下载已经开始，后续进度更新和完成处理由SSE事件处理
-        console.log('下载请求已发送，等待SSE消息更新进度')
-      } catch (error) {
-        console.error('下载请求失败:', error)
-        updateTip('下载请求失败')
-        setTimeout(hideTip, 2000)
-        isDownloading = false
+        return true;
+      };
+      
+      // 如果连接正常，直接开始下载
+      if (checkSSEConnection()) {
+        startDownload();
+      }
+      
+      // 开始下载过程
+      function startDownload() {
+        // 标记下载状态
+        isDownloading = true;
+        console.log('开始下载，设置isDownloading=true, format=' + format);
+        
+        // 显示进度提示
+        showTip('正在解析目录...', true);
+        
+        // 构建查询参数
+        const params = new URLSearchParams();
+        // 添加所有需要的参数
+        Object.keys(item).forEach(key => {
+          params.append(key, item[key]);
+        });
+        // 确保添加format参数
+        params.append('format', format);
+        const query = params.toString();
+        
+        // 请求URL
+        const url = `/api/book/fetch?${query}`;
+        console.log('请求URL:', url);
+        
+        // 发送请求
+        fetch(url)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`服务器响应异常: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(result => {
+            console.log('下载请求响应:', result);
+            if (result && result.message) {
+              updateTip(result.message);
+            }
+          })
+          .catch(error => {
+            console.error('下载请求失败:', error);
+            updateTip(`下载请求失败: ${error.message || '未知错误'}`);
+            setTimeout(() => {
+              hideTip();
+              isDownloading = false;
+            }, 2000);
+          });
       }
     }
 
@@ -328,6 +392,11 @@
       let sseConnected = false;
       let sseInstance = null;
       
+      // 增加上一次收到心跳包的时间记录
+      let lastHeartbeatTime = 0;
+      // 检测心跳包的间隔，比心跳包发送间隔长一点
+      const HEARTBEAT_INTERVAL = 15000; // 15秒
+      
       // 创建并连接SSE
       const connectSSE = () => {
         // 如果已经超过最大重连次数，停止重连
@@ -361,6 +430,61 @@
         let lastProgressUpdate = Date.now() // 初始化为当前时间
         const MAX_PROGRESS_TIMEOUT = 15000 // 15秒无响应则认为下载失败
         
+        // 添加心跳包检测定时器
+        let heartbeatTimer = null;
+        
+        // 启动心跳包检测
+        const startHeartbeatCheck = () => {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = setInterval(() => {
+            const now = Date.now();
+            // 如果最后一次心跳包时间不为0，则检查时间间隔
+            if (lastHeartbeatTime > 0 && now - lastHeartbeatTime > HEARTBEAT_INTERVAL) {
+              const lastTime = new Date(lastHeartbeatTime).toLocaleTimeString();
+              const currentTime = new Date().toLocaleTimeString();
+              const interval = (now - lastHeartbeatTime)/1000;
+              console.warn(`[SSE]心跳包超时：最后心跳包时间 ${lastTime}，当前时间 ${currentTime}，间隔: ${interval}秒`)
+              // 心跳包超时，认为连接已断开
+              if (sseInstance) {
+                console.warn('心跳包超时，关闭当前连接并重试')
+                sseInstance.close();
+                sseInstance = null;
+                sseConnected = false;
+                globalSseConnected = false; // 更新全局状态
+                
+                // 如果正在下载，显示重连信息
+                if (isDownloading) {
+                  updateTip(`服务器连接已断开，正在尝试重连(${reconnectAttempts+1}/${MAX_RECONNECT_ATTEMPTS})...`)
+                  
+                  // 如果超过最大重连次数，重置下载状态
+                  if (reconnectAttempts + 1 >= MAX_RECONNECT_ATTEMPTS) {
+                    isDownloading = false
+                    downloadCompleted = false
+                    console.log('达到最大重连次数，重置下载状态')
+                    
+                    // 更新提示
+                    updateTip('服务器连接失败，请刷新页面重试')
+                    setTimeout(() => {
+                      hideTip()
+                    }, 3000)
+                  }
+                }
+                
+                // 使用指数退避算法重连
+                reconnectAttempts++;
+                reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+                
+                setTimeout(() => {
+                  connectSSE();
+                }, reconnectDelay);
+              }
+            }
+          }, 5000); // 每5秒检测一次
+        }
+        
+        // 初始化时立即启动心跳包检测
+        startHeartbeatCheck();
+        
         const checkProgressTimeout = () => {
           // 清除之前的超时定时器
           if (progressTimeout) {
@@ -372,13 +496,23 @@
             progressTimeout = setTimeout(() => {
               // 检查是否超过最大超时时间
               const now = Date.now()
+              console.log(`[SSE]检查进度超时，上次更新: ${new Date(lastProgressUpdate).toLocaleTimeString()}, 当前时间: ${new Date(now).toLocaleTimeString()}, 间隔: ${(now - lastProgressUpdate)/1000}秒`);
+          
               if (now - lastProgressUpdate > MAX_PROGRESS_TIMEOUT) {
                 console.error('下载超时，可能已断开连接')
                 updateTip('下载超时，请刷新页面重试')
+                // 重置进度定时器
+                if (progressTimeout) {
+                  clearTimeout(progressTimeout)
+                  progressTimeout = null
+                }
+                // 重置下载状态
+                isDownloading = false
+                downloadCompleted = false
+                console.log('超时时重置下载状态')
                 // 3秒后关闭提示
                 setTimeout(() => {
                   hideTip()
-                  isDownloading = false
                 }, 3000)
               } else {
                 // 继续检测
@@ -390,28 +524,50 @@
         
         // 连接建立成功
         sseInstance.onopen = () => {
-          console.log('SSE连接已建立')
+          console.log('[SSE]连接已建立，准备接收消息')
           sseConnected = true;
+          globalSseConnected = true; // 更新全局状态
           reconnectAttempts = 0; // 重置重连尝试次数
           reconnectDelay = 1000; // 重置重连延迟
           lastProgressUpdate = Date.now(); // 更新最后活动时间
+          lastHeartbeatTime = Date.now(); // 更新最后心跳包时间
+          console.log('[SSE]连接状态更新为: connected =', sseConnected);
+          
+          // 如果正在显示连接中消息，更新为连接成功
+          const tipContent = tipText.innerHTML;
+          if (tipContent.includes('正在连接') || tipContent.includes('重新连接')) {
+            updateTip('服务器连接成功');
+            setTimeout(hideTip, 1000);
+          }
         }
         
         sseInstance.onmessage = (e) => {
+          // 处理旧版心跳包格式
           if (e.data === ':heartbeat') {
-            // 心跳包，更新最后活动时间
-            lastProgressUpdate = Date.now()
-            return
+            // 兼容旧版心跳包格式
+            lastHeartbeatTime = Date.now();
+            lastProgressUpdate = Date.now();
+            console.log('[SSE]收到旧式心跳包');
+            return;
           }
           
           // 特殊处理纯文本消息
           if (e.data === 'connected') {
-            console.log('SSE连接成功，收到初始连接消息')
-            return
+            console.log('[SSE]连接成功，收到初始连接消息');
+            lastHeartbeatTime = Date.now(); // 将初始连接消息也视为心跳包
+            return;
           }
           
           try {
             const data = JSON.parse(e.data)
+            
+            // 处理心跳包消息
+            if (data.type === 'heartbeat') {
+              lastHeartbeatTime = Date.now();
+              // 收到心跳包，更新最后活动时间
+              lastProgressUpdate = Date.now();
+              return;
+            }
             
             // 处理错误消息
             if (data.type === 'book-download-error') {
@@ -420,8 +576,17 @@
               console.error('下载出错:', data.message)
               // 停止下载状态
               isDownloading = false
+              console.log('错误时重置下载状态')
+              // 清除超时定时器
+              if (progressTimeout) {
+                clearTimeout(progressTimeout)
+                progressTimeout = null
+              }
               // 3秒后隐藏提示
-              setTimeout(hideTip, 3000)
+              setTimeout(() => {
+                hideTip()
+                downloadCompleted = false
+              }, 3000)
               return
             }
             
@@ -457,19 +622,25 @@
             
             // 处理下载完成消息
             if (data.type === 'book-download-complete' && !downloadCompleted) {
-              downloadCompleted = true
+              console.log('[SSE]收到下载完成消息：', data);
+              downloadCompleted = true;
               // 清除超时定时器
               if (progressTimeout) {
-                clearTimeout(progressTimeout)
-                progressTimeout = null
+                clearTimeout(progressTimeout);
+                progressTimeout = null;
               }
-              updateTip('下载完成，准备处理文件...')
+              updateTip('下载完成，准备处理文件...');
               
               // 确保进度条显示100%
               if (data.total > 0) {
-                updateProgress(data.total, data.total)
+                updateProgress(data.total, data.total);
               }
               
+              // 在下载完成后立即更新最后心跳包时间，避免心跳检测超时
+              lastHeartbeatTime = Date.now();
+              lastProgressUpdate = Date.now();
+              
+              // 设置一个延迟定时器来重置下载状态
               // 等待服务器处理文件
               setTimeout(() => {
                 // 静默刷新书籍列表
@@ -480,16 +651,43 @@
                     // 延迟一秒后开始下载，确保UI更新完成
                     setTimeout(() => {
                       hideTip()
-                      window.location.href = `/api/book/download?filename=${encodeURIComponent(latestFileName)}`;
+                      isDownloading = false // 在隐藏提示前就重置下载状态
+                      console.log('重置下载状态，可以进行新的下载')
+                      
+                      // 使用fetch API获取下载URL，然后通过动态iframe触发下载
+                      fetch(`/api/book/download-url?filename=${encodeURIComponent(latestFileName)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                          if (data.downloadURL) {
+                            // 创建隐藏的iframe来触发下载
+                            const iframe = document.createElement('iframe');
+                            iframe.style.display = 'none';
+                            iframe.src = data.downloadURL;
+                            document.body.appendChild(iframe);
+                            
+                            // 在下载开始后移除iframe
+                            setTimeout(() => {
+                              document.body.removeChild(iframe);
+                            }, 1000);
+                          }
+                        })
+                        .catch(error => {
+                          console.error('获取下载URL失败:', error);
+                        });
+                      
                       // 重置下载完成标志
                       downloadCompleted = false
                     }, 1000)
                   } else {
                     updateTip('下载完成！')
-                    setTimeout(hideTip, 2000)
-                    
-                    // 重置下载完成标志
-                    downloadCompleted = false
+                    // 在隐藏提示前就重置下载状态
+                    isDownloading = false
+                    console.log('重置下载状态，可以进行新的下载')
+                    setTimeout(() => {
+                      hideTip()
+                      // 重置下载完成标志
+                      downloadCompleted = false
+                    }, 2000)
                   }
                 })
               }, 1000)
@@ -508,17 +706,38 @@
         
         // 连接错误处理
         sseInstance.onerror = (error) => {
-          console.error('SSE连接错误:', error)
+          console.error('[SSE]连接错误:', error)
           sseConnected = false;
+          globalSseConnected = false; // 更新全局状态
+          console.log('[SSE]连接状态更新为: connected =', sseConnected);
           
           // 如果正在下载，显示连接中断提示
           if (isDownloading) {
             updateTip(`服务器连接中断，正在尝试重连(${reconnectAttempts+1}/${MAX_RECONNECT_ATTEMPTS})...`)
+            
+            // 如果超过最大重连次数，重置下载状态
+            if (reconnectAttempts + 1 >= MAX_RECONNECT_ATTEMPTS) {
+              isDownloading = false
+              downloadCompleted = false
+              console.log('SSE错误：达到最大重连次数，重置下载状态')
+              
+              // 更新提示
+              updateTip('服务器连接失败，请刷新页面重试')
+              setTimeout(() => {
+                hideTip()
+              }, 3000)
+            }
           }
           
           // 关闭当前连接
           sseInstance.close()
           sseInstance = null
+          
+          // 清除心跳包检测定时器
+          if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+          }
           
           // 使用指数退避算法重连
           reconnectAttempts++;
@@ -570,7 +789,18 @@
           // 尝试重新连接
           connectSSE();
         },
-        isConnected: () => sseConnected,
+        isConnected: () => {
+          try {
+            // 确保这个方法在被调用时始终返回布尔值
+            const connected = (sseConnected === true);
+            // 更新全局变量
+            globalSseConnected = connected;
+            return connected;
+          } catch (e) {
+            console.error('检查SSE连接状态时出错:', e);
+            return false;
+          }
+        },
         getReconnectAttempts: () => reconnectAttempts,
         resetReconnectAttempts: () => {
           reconnectAttempts = 0;
@@ -582,10 +812,31 @@
     // 初始化SSE连接
     const sseController = initSSE();
     
+    // 全局变量，表示是否已经执行了初始化检查
+    let initialCheckDone = false;
+    
+    // 每10秒检查一次SSE连接状态，确保全局状态与实际状态一致
+    setInterval(() => {
+      globalSseConnected = sseController.isConnected();
+      console.log('定期检查SSE连接状态：', globalSseConnected);
+    }, 10000);
+    
     // 添加用户主动重连功能
     const reconnectSSE = () => {
+      console.log('执行重新连接SSE操作');
       // 尝试重新连接
       sseController.connect();
+      
+      // 重置SSE连接检测标志
+      initialCheckDone = false;
+      
+      // 一秒后检查连接状态
+      setTimeout(() => {
+        globalSseConnected = sseController.isConnected();
+        console.log('重连后的连接状态：', globalSseConnected);
+        initialCheckDone = true;
+      }, 1000);
+      
       // 显示重连提示（只有在没有下载任务时才显示）
       if (!isDownloading) {
         showTip('正在重新连接服务器...');
@@ -616,30 +867,22 @@
       
       // 检查是否点击的是下载EPUB按钮
       if (target.classList.contains('btn-download-epub')) {
-        const index = parseInt(target.getAttribute('data-index'))
+        const index = parseInt(target.getAttribute('data-index'));
         if (!isNaN(index)) {
-          // 在发起下载前检查SSE连接状态
-          if (sseController.getReconnectAttempts() >= 5) {
-            // 如果连接已断开，尝试重新连接
-            reconnectSSE();
-          }
-          handleDownloadToServer(index, 'epub')
+          console.log(`点击了EPUB下载按钮，索引: ${index}`);
+          handleDownloadToServer(index, 'epub');
         }
-        return
+        return;
       }
       
       // 检查是否点击的是下载TXT按钮
       if (target.classList.contains('btn-download-txt')) {
-        const index = parseInt(target.getAttribute('data-index'))
+        const index = parseInt(target.getAttribute('data-index'));
         if (!isNaN(index)) {
-          // 在发起下载前检查SSE连接状态
-          if (sseController.getReconnectAttempts() >= 5) {
-            // 如果连接已断开，尝试重新连接
-            reconnectSSE();
-          }
-          handleDownloadToServer(index, 'txt')
+          console.log(`点击了TXT下载按钮，索引: ${index}`);
+          handleDownloadToServer(index, 'txt');
         }
-        return
+        return;
       }
       
       // 检查是否点击的是当前已下载文件的下载按钮
@@ -663,6 +906,19 @@
 
     // 初始化
     fetchLocalBooks()
+    
+    // 初始化后立即检查一次SSE连接状态
+    setTimeout(() => {
+      globalSseConnected = sseController.isConnected();
+      console.log('初始化检查SSE连接状态：', globalSseConnected);
+      initialCheckDone = true;
+      
+      // 如果连接失败，尝试重连
+      if (!globalSseConnected) {
+        console.log('初始化检测到连接未建立，尝试重连');
+        reconnectSSE();
+      }
+    }, 1000);
   })
 </script>
 </body>

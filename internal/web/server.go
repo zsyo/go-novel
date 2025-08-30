@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"so-novel/internal/config"
 	"so-novel/internal/handler"
@@ -21,11 +22,12 @@ var staticFiles embed.FS
 // 启动SSE心跳服务
 func startSSEHeartbeat() {
 	go func() {
-		ticker := time.NewTicker(15 * time.Second) // 缩短心跳包间隔为15秒
+		ticker := time.NewTicker(10 * time.Second) // 缩短心跳包间隔为10秒
 		defer ticker.Stop()
 
 		for range ticker.C {
-			sse.PushMessageToAll(":heartbeat")
+			// 使用新的心跳包发送函数
+			sse.SendHeartbeat()
 		}
 	}()
 }
@@ -104,6 +106,17 @@ func StartServer(cfg *config.Config) {
 		api.GET("/search/aggregated", handler.AggregatedSearch)
 		api.GET("/book/fetch", handler.BookFetch)
 		api.GET("/book/download", handler.BookDownload)
+		api.GET("/book/download-url", func(c *gin.Context) {
+			filename := c.Query("filename")
+			if filename == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "filename is required"})
+				return
+			}
+
+			// 返回下载URL而不是直接触发下载
+			downloadURL := fmt.Sprintf("/api/book/download?filename=%s", url.QueryEscape(filename))
+			c.JSON(http.StatusOK, gin.H{"downloadURL": downloadURL})
+		})
 		api.GET("/local/books", handler.LocalBooks)
 		api.DELETE("/book", handler.DeleteBook)
 	}

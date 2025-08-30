@@ -55,9 +55,8 @@ func sendFinalProgress(total int) {
 	// 确保进度为100%
 	sse.SendProgress(total, total)
 
-	// 发送下载完成消息
-	message := fmt.Sprintf(`{"type":"book-download-complete","total":%d}`, total)
-	sse.PushMessageToAll(message)
+	// 发送下载完成消息，使用标准的SendComplete函数
+	sse.SendComplete(total)
 
 	// 记录日志
 	fmt.Printf("下载完成，总章节数: %d\n", total)

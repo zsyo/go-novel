@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -98,9 +99,11 @@ func (m *ClientManager) broadcastMessage(message string) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
+	// fmt.Printf("Debug: Current clients length: %d\n", len(m.clients))
 	for client := range m.clients {
 		select {
 		case client <- message:
+			// fmt.Printf("Debug: Broadcasting message to client: %s\n", message)
 		default:
 			// 如果通道已满，跳过该客户端
 		}
@@ -110,6 +113,13 @@ func (m *ClientManager) broadcastMessage(message string) {
 // PushMessageToAll 推送消息到所有客户端
 func PushMessageToAll(message string) {
 	manager.broadcastMessage(message)
+}
+
+// SendHeartbeat 发送心跳包
+func SendHeartbeat() {
+	// 发送JSON格式的心跳包
+	heartbeatMessage := fmt.Sprintf(`{"type":"heartbeat","timestamp":%d}`, time.Now().Unix())
+	PushMessageToAll(heartbeatMessage)
 }
 
 // SendProgress 发送下载进度
