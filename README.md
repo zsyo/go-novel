@@ -78,7 +78,7 @@ so-novel/
 
 ## Docker部署
 
-项目提供了 [build-docker.sh](file:///home/zephyr/code/go/so-novel/build-docker.sh) 脚本用于构建Docker镜像，该脚本会自动编译Go程序并构建最小化的Docker镜像。
+项目提供了 [build-docker.sh](build-docker.sh) 脚本用于构建Docker镜像，该脚本会自动编译Go程序并构建最小化的Docker镜像。
 
 ### 环境要求
 
@@ -88,7 +88,7 @@ so-novel/
 
 ### 构建步骤
 
-运行 [build-docker.sh](file:///home/zephyr/code/go/so-novel/build-docker.sh) 脚本即可自动完成编译和构建：
+运行 [build-docker.sh](build-docker.sh) 脚本即可自动完成编译和构建：
 
 ```bash
 ./build-docker.sh
@@ -106,10 +106,11 @@ so-novel/
 
 ```bash
 # 基本运行
-docker run -d -p 7765:7765 --name so-novel so-novel:latest
+docker run -d --user=$(id -u):$(id -g) -p 7765:7765 --name so-novel so-novel:latest
 
 # 挂载本地配置目录
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
    --name so-novel \
@@ -117,6 +118,7 @@ docker run -d \
 
 # 挂载本地下载目录
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/downloads:/app/downloads \
    --name so-novel \
@@ -124,6 +126,7 @@ docker run -d \
 
 # 同时挂载配置和下载目录
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
    -v $(pwd)/downloads:/app/downloads \
@@ -132,6 +135,7 @@ docker run -d \
 
 # 同时挂载配置和下载目录（精细挂载配置、规则目录）
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs/config.ini:/app/configs/config.ini \
    -v $(pwd)/configs/rules:/app/configs/rules \
@@ -144,6 +148,13 @@ docker run -d \
 
 为了方便用户使用，我们已经构建了Docker镜像并推送到了Docker Hub，地址是：[https://hub.docker.com/r/zsyo/so-novel](https://hub.docker.com/r/zsyo/so-novel)
 
+**注意**：如需挂载配置和规则,请通过以下命令下载配置文件压缩包并解压。
+```bash
+wget https://raw.githubusercontent.com/zsyo/so-novel/main/assets/configs.tar.gz
+
+tar -zxvf configs.tar.gz
+```
+
 使用预构建镜像的部署命令示例：
 
 ```bash
@@ -152,6 +163,7 @@ docker run -d -p 7765:7765 --name so-novel zsyo/so-novel:latest
 
 # 挂载本地配置目录
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
    --name so-novel \
@@ -159,6 +171,7 @@ docker run -d \
 
 # 挂载本地下载目录
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/downloads:/app/downloads \
    --name so-novel \
@@ -166,6 +179,7 @@ docker run -d \
 
 # 同时挂载配置和下载目录
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
    -v $(pwd)/downloads:/app/downloads \
@@ -174,6 +188,7 @@ docker run -d \
 
 # 同时挂载配置和下载目录（精细挂载配置、规则目录）
 docker run -d \
+   --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs/config.ini:/app/configs/config.ini \
    -v $(pwd)/configs/rules:/app/configs/rules \
@@ -256,7 +271,7 @@ port = 8118
 
 ## 规则文件
 
-规则文件位于 `configs/rules/` 目录下，完全兼容原Java版本的JSON格式规则。
+规则文件位于 `configs/rules/` 目录下，兼容原Java版本的JSON格式规则。
 
 支持的规则类型：
 - `main-rules.json` - 主要规则文件
