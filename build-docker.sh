@@ -5,7 +5,24 @@ PROJECT_NAME="go-novel"
 
 # 设置目标平台
 GOOS=linux
-GOARCH=amd64
+
+# 自动检测系统架构
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)
+        GOARCH=amd64
+        ;;
+    aarch64|arm64)
+        GOARCH=arm64
+        ;;
+    armv6l|armv7l)
+        GOARCH=arm
+        ;;
+    *)
+        echo "不支持的架构: $ARCH"
+        exit 1
+        ;;
+esac
 
 echo "开始构建 $GOOS/$GOARCH 版本的 $PROJECT_NAME..."
 
