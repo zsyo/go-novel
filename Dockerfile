@@ -1,5 +1,5 @@
 # 使用最小化的Alpine Linux作为基础镜像
-FROM alpine:3.18
+FROM alpine:latest
 
 # 设置镜像源为阿里云镜像站（可选，提高下载速度）
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories

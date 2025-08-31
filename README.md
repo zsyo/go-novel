@@ -242,16 +242,14 @@ Docker镜像基于Alpine Linux构建，具有以下特点：
 
 以下是本项目的Web UI界面预览：
 
-<div style="display: flex; justify-content: space-between; gap: 10px;">
-  <div style="flex: 1; text-align: center;">
-    <img src="assets/webui-preview.webp" alt="Web UI 搜索界面" style="width: 100%; height: auto;" />
-    <p>Web UI 搜索界面</p>
-  </div>
-  <div style="flex: 1; text-align: center;">
-    <img src="assets/webui-downloading.webp" alt="Web UI 下载界面" style="width: 100%; height: auto;" />
-    <p>Web UI 下载界面</p>
-  </div>
-</div>
+<p align="center">
+  <img src="assets/webui-preview.webp" alt="Web UI 搜索界面" width="49%" />
+  <img src="assets/webui-downloading.webp" alt="Web UI 下载界面" width="49%" />
+</p>
+
+<p align="center">
+  <em>左: Web UI 搜索界面 | 右: Web UI 下载界面</em>
+</p>
 
 界面功能包括：
 1. **书籍搜索**：在搜索框中输入书名或作者名，点击搜索按钮进行聚合搜索
