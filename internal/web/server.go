@@ -7,17 +7,16 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"so-novel/internal/config"
-	"so-novel/internal/handler"
-	"so-novel/internal/sse"
 	"strings"
 	"time"
 
+	"so-novel/internal/config"
+	soembed "so-novel/internal/embed"
+	"so-novel/internal/handler"
+	"so-novel/internal/sse"
+
 	"github.com/gin-gonic/gin"
 )
-
-//go:embed static/*
-var staticFiles embed.FS
 
 // 启动SSE心跳服务
 func startSSEHeartbeat() {
@@ -79,6 +78,9 @@ func StartServer(cfg *config.Config) {
 
 	// 创建gin引擎
 	r := gin.Default()
+
+	// 获取嵌入的静态文件系统
+	staticFiles := soembed.GetEmbeddedStaticFiles()
 
 	// 设置静态文件服务，使用嵌入的文件系统
 	r.GET("/css/*filepath", func(c *gin.Context) {

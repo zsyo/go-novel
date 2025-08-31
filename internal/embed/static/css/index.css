@@ -11,6 +11,7 @@ body {
   color: #333;
   line-height: 1.6;
   font-size: 14px;
+  padding-bottom: 50px; /* 为页脚预留空间 */
 }
 
 /* 容器样式 */
@@ -30,11 +31,100 @@ body {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+.header-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
 .app-title {
   color: white;
   font-size: 2.2rem;
   font-weight: 600;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  margin: 0;
+}
+
+.github-link {
+  text-decoration: none;
+  color: #5d7bf9;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.github-link:hover {
+  text-decoration: underline;
+}
+
+/* 页脚样式 */
+.footer {
+  margin-top: 0;
+  padding: 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10;
+}
+
+.footer .wrap-container {
+  background-color: transparent;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  padding: 10px;
+  text-align: center;
+  width: 100%;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.divider {
+  color: #999;
+  font-size: 14px;
+}
+
+.copyright {
+  color: #666;
+  font-size: 14px;
+}
+
+/* 移除不再使用的github-container样式 */
+
+/* 响应式设计 - 页脚 */
+@media (max-width: 480px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+
+/* 屏幕高度较小时的处理 */
+@media (max-height: 600px) {
+  .footer {
+    position: relative;
+    margin-top: 20px;
+  }
+  
+  body {
+    padding-bottom: 0;
+  }
 }
 
 /* 主要内容区域 */
@@ -153,6 +243,7 @@ body {
 
 .data-table {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   margin: 0;
   font-size: 14px;
@@ -169,11 +260,13 @@ body {
   padding: 8px 12px;
   text-align: left;
   border: 1px solid #ddd;
+  vertical-align: middle;
 }
 
 .data-table th {
   font-weight: 600;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .data-table tbody tr:hover {
@@ -219,7 +312,7 @@ body {
     position: relative;
     padding-left: 50% !important;
   }
-
+  
   .data-table td:before {
     content: attr(data-label) ": ";
     position: absolute;
@@ -227,6 +320,21 @@ body {
     width: 45%;
     font-weight: bold;
     text-align: left;
+  }
+  
+  /* 确保操作列中的按钮保持横排 */
+  .data-table td[data-label="操作"] {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 50% !important;
+  }
+  
+  .data-table td[data-label="操作"] .btn {
+    width: auto;
+    margin-right: 5px;
   }
 }
 
@@ -408,6 +516,7 @@ body {
   margin-right: 5px;
   margin-bottom: 5px;
   min-width: 80px;
+  display: inline-block;
 }
 
 .btn-download-epub {
@@ -424,4 +533,29 @@ body {
 
 .btn-download-txt:hover {
   background-color: #3e9142;
+}
+
+/* 表格操作列样式 */
+.data-table td:last-child {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table td:last-child .btn {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+/* 书籍链接样式 */
+.book-link {
+  color: #5d7bf9;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-block;
+  position: relative;
+}
+
+.book-link:hover {
+  color: #4a67e3;
+  text-decoration: underline;
 }

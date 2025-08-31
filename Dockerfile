@@ -13,9 +13,8 @@ RUN adduser -D -s /bin/sh so-novel
 # 设置工作目录
 WORKDIR /app
 
-# 复制二进制文件和配置文件
+# 复制二进制文件
 COPY so-novel ./
-COPY configs ./configs
 
 # 更改文件所有者
 RUN chown -R so-novel:so-novel /app

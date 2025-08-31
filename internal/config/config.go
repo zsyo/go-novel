@@ -1,24 +1,21 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
+
+	"so-novel/internal/embed"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Global   GlobalConfig   `mapstructure:"global"`
 	Download DownloadConfig `mapstructure:"download"`
 	Source   SourceConfig   `mapstructure:"source"`
 	Crawl    CrawlConfig    `mapstructure:"crawl"`
 	Web      WebConfig      `mapstructure:"web"`
 	Proxy    ProxyConfig    `mapstructure:"proxy"`
-}
-
-type GlobalConfig struct {
-	AutoUpdate int    `mapstructure:"auto-update"`
-	GhProxy    string `mapstructure:"gh-proxy"`
 }
 
 type DownloadConfig struct {
@@ -70,7 +67,6 @@ func InitConfig() *Config {
 		viper.AddConfigPath(".")
 
 		// 设置默认值
-		viper.SetDefault("global.auto-update", 0)
 		viper.SetDefault("download.download-path", "downloads")
 		viper.SetDefault("download.extname", "epub")
 		viper.SetDefault("download.preserve-chapter-cache", 0)
@@ -93,9 +89,19 @@ func InitConfig() *Config {
 
 		// 读取配置文件
 		if err := viper.ReadInConfig(); err != nil {
-			// 如果是配置文件不存在错误，使用默认配置
+			// 如果是配置文件不存在错误，尝试使用嵌入的配置文件
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				fmt.Printf("配置文件不存在，使用默认配置\n")
+				fmt.Printf("配置文件不存在，尝试使用嵌入的配置文件\n")
+				// 使用嵌入的配置文件
+				if embeddedConfig := embed.GetEmbeddedConfigFile(); embeddedConfig != nil {
+					if err := viper.ReadConfig(bytes.NewBuffer(embeddedConfig)); err != nil {
+						fmt.Printf("读取嵌入的配置文件遇到错误: %v\n", err)
+					} else {
+						fmt.Printf("成功读取嵌入的配置文件\n")
+					}
+				} else {
+					fmt.Printf("未找到嵌入的配置文件，使用默认配置\n")
+				}
 			} else {
 				// 其他类型的错误，显示详细信息
 				fmt.Printf("读取配置文件遇到错误: %v\n", err)

@@ -2,8 +2,10 @@ package rules
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"so-novel/internal/embed"
 	"so-novel/internal/model"
 	"sync"
 )
@@ -48,19 +50,32 @@ func (rm *RuleManager) LoadRules(filename string) ([]model.Rule, error) {
 	var path string
 
 	// 尝试不同的路径
+	fileFound := false
 	for _, p := range pathsToTry {
 		if _, statErr := os.Stat(p); statErr == nil {
 			path = p
 			data, err = os.ReadFile(path)
 			if err == nil {
+				fileFound = true
 				break
 			}
 		}
 	}
 
-	// 如果所有路径都失败了，返回最后一个错误
-	if err != nil {
-		return nil, err
+	// 如果文件系统中找不到文件，尝试使用嵌入的文件
+	if !fileFound {
+		fmt.Printf("文件系统中未找到规则文件: %s，尝试使用嵌入的文件\n", filename)
+		embeddedData := embed.GetEmbeddedRulesFile(filename)
+		if embeddedData != nil {
+			data = embeddedData
+			fmt.Printf("成功加载嵌入的规则文件: %s\n", filename)
+		} else {
+			// 如果所有路径都失败了，返回最后一个错误
+			if err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("未找到规则文件: %s", filename)
+		}
 	}
 
 	// 解析JSON

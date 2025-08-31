@@ -23,18 +23,49 @@
 - **HTML解析**: GoQuery
 - **EPUB生成**: go-epub库
 
+## 嵌入资源机制
+
+本项目采用Go语言的`embed`特性，将配置文件、规则文件和静态资源直接嵌入到可执行文件中。这种设计有以下优势：
+
+1. **零依赖部署**：可执行文件包含所有必要资源，无需额外的配置文件即可运行
+2. **自动恢复**：当外部配置文件缺失时，程序会自动使用嵌入的默认配置
+3. **优先级机制**：当外部配置文件存在时，优先使用外部文件，便于用户自定义
+
+### 嵌入资源说明
+
+- **配置文件**：`configs/config.ini` 包含程序运行的基本配置
+- **规则文件**：`configs/rules/` 目录下的所有JSON文件，定义了小说源的爬取规则
+- **静态资源**：`internal/embed/static/` 目录下的Web界面文件（HTML、CSS、图标等）
+
+### 运行时行为
+
+1. 程序启动时会检查 `configs/` 目录是否存在配置文件
+2. 如果配置文件存在，则使用外部文件
+3. 如果配置文件不存在，则使用嵌入的默认文件（不会创建外部文件）
+4. 这种机制确保程序在任何环境下都能正常运行，同时保留了用户自定义配置的能力
+
 ## 目录结构
 
 ```
 so-novel/
 ├── assets/            # 资源文件
+    ├── configs.tar.gz # 默认配置和规则文件
 │   └── webui-preview.jpg # Web UI 预览图
-├── configs/           # 配置文件
+├── configs/           # 配置文件（运行时生成）
 │   ├── config.ini     # 主配置文件
 │   └── rules/         # 规则文件
 ├── internal/          # 内部模块
 │   ├── config/        # 配置管理
 │   ├── core/          # 核心爬虫逻辑
+│   ├── embed/         # 嵌入资源
+│   │   ├── embed.go   # 嵌入的配置、规则和静态文件
+│   │   ├── configs/   # 嵌入文件的源文件（编译时使用）
+│   │   │   ├── config.ini
+│   │   │   └── rules/
+│   │   └── static/    # 嵌入的静态文件源文件（编译时使用）
+│   │       ├── css/
+│   │       ├── favicon.ico
+│   │       └── index.html
 │   ├── handler/       # HTTP请求处理
 │   ├── model/         # 数据模型
 │   ├── rules/         # 规则管理
@@ -104,7 +135,7 @@ so-novel/
 
 构建完成后，可以使用以下命令运行容器：
 
-```bash
+```
 # 基本运行
 docker run -d --user=$(id -u):$(id -g) -p 7765:7765 --name so-novel so-novel:latest
 
@@ -157,7 +188,7 @@ tar -zxvf configs.tar.gz
 
 使用预构建镜像的部署命令示例：
 
-```bash
+```
 # 基本运行
 docker run -d -p 7765:7765 --name so-novel zsyo/so-novel:latest
 
@@ -209,7 +240,16 @@ Docker镜像基于Alpine Linux构建，具有以下特点：
 
 以下是本项目的Web UI界面预览：
 
-![Web UI 预览](assets/webui-preview.jpg)
+<div style="display: flex; justify-content: space-between; gap: 10px;">
+  <div style="flex: 1; text-align: center;">
+    <img src="assets/webui-preview.webp" alt="Web UI 搜索界面" style="width: 100%; height: auto;" />
+    <p>Web UI 搜索界面</p>
+  </div>
+  <div style="flex: 1; text-align: center;">
+    <img src="assets/webui-downloading.webp" alt="Web UI 下载界面" style="width: 100%; height: auto;" />
+    <p>Web UI 下载界面</p>
+  </div>
+</div>
 
 界面功能包括：
 1. **书籍搜索**：在搜索框中输入书名或作者名，点击搜索按钮进行聚合搜索

@@ -17,7 +17,9 @@
 <body>
 <div class="wrap-container">
   <header class="header">
-    <h1 class="app-title">So Novel</h1>
+    <div class="header-content">
+      <h1 class="app-title">So Novel</h1>
+    </div>
   </header>
   <main class="main-content">
     <section class="container download-container card" id="downloadContainer">
@@ -140,7 +142,7 @@
     const updateProgress = (current, total) => {
       if (total <= 0) return
       
-      const percent = Math.round((current / total) * 100)
+      const percent = Math.floor((current / total) * 100)
       progressBar.style.width = `${percent}%`
       progressText.textContent = `${percent}%(${current}/${total})`
     }
@@ -374,12 +376,12 @@
       downloadTableBody.innerHTML = data.map((item, index) => `
       <tr>
         <td data-label="序号">${index + 1}</td>
-        <td data-label="书名">${item.bookName}</td>
+        <td data-label="书名"><a href="${item.url}" target="_blank" class="book-link" title="在书源网站查看">${item.bookName}</a></td>
         <td data-label="作者">${item.author}</td>
         <td data-label="最新章节">${item.latestChapter || ''}</td>
         <td data-label="最后更新时间">${item.lastUpdateTime || ''}</td>
         <td data-label="书源">${item.sourceId}</td>
-        <td data-label="操作">
+        <td data-label="操作" style="text-align: left;">
         <button class="btn btn-secondary btn-download-epub" data-index="${index}">下载EPUB</button>
         <button class="btn btn-secondary btn-download-txt" data-index="${index}">下载TXT</button>
       </td>
@@ -393,7 +395,7 @@
         <td data-label="文件名">${item.name}</td>
         <td data-label="文件大小">${formatSize(item.size)}</td>
         <td data-label="下载时间">${formatDate(item.timestamp)}</td>
-        <td data-label="操作">
+        <td data-label="操作" style="text-align: left;">
           <button class="btn btn-secondary btn-download" data-filename="${item.name}">下载</button>
           <button class="btn btn-danger btn-delete" data-filename="${item.name}">删除</button>
         </td>
@@ -684,7 +686,7 @@
                 updateProgress(data.index, data.total)
                 
                 // 更新提示文本，包含进度百分比
-                const percent = Math.round((data.index / data.total) * 100)
+                const percent = Math.floor((data.index / data.total) * 100)
                 updateTip(`正在下载章节 ${percent}%(${data.index}/${data.total})`)
                 
                 // 检查是否下载完成
@@ -999,5 +1001,16 @@
     }, 1000);
   })
 </script>
+  <footer class="footer">
+    <div class="wrap-container">
+      <div class="footer-content" style="background-color: #f8f8f8; width: 100%; border-radius: 4px; border-top: 1px solid #e0e0e0;">
+        <div class="footer-links">
+          <span class="copyright">© 2025 So Novel</span>
+          <span class="divider">|</span>
+          <a href="https://github.com/zsyo/so-novel" target="_blank" class="github-link" title="查看GitHub仓库">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

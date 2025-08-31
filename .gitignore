@@ -1,0 +1,47 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories
+vendor/
+go/vendor/
+
+# Go workspace file
+go.work
+
+# Compiled Object files, Static and Dynamic libraries.
+*.o
+*.a
+*.so*
+
+# C output
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.log
+
+# Configuration files
+configs/
+
+# Download files
+downloads/
+
+# Build outputs
+so-novel
+*.tar.gz
