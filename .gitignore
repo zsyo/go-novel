@@ -43,5 +43,5 @@ configs/
 downloads/
 
 # Build outputs
-so-novel
+go-novel
 *.tar.gz

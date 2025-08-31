@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"so-novel/internal/model"
+	"go-novel/internal/model"
 
 	"github.com/PuerkitoBio/goquery"
 )

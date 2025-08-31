@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"so-novel/internal/model"
-	"so-novel/internal/sse"
+	"go-novel/internal/model"
+	"go-novel/internal/sse"
 
 	"github.com/PuerkitoBio/goquery"
 )

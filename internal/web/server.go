@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"so-novel/internal/config"
-	soembed "so-novel/internal/embed"
-	"so-novel/internal/handler"
-	"so-novel/internal/sse"
+	"go-novel/internal/config"
+	soembed "go-novel/internal/embed"
+	"go-novel/internal/handler"
+	"go-novel/internal/sse"
 
 	"github.com/gin-gonic/gin"
 )

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"so-novel/internal/model"
-	"so-novel/internal/rules"
+	"go-novel/internal/model"
+	"go-novel/internal/rules"
 
 	"github.com/PuerkitoBio/goquery"
 )

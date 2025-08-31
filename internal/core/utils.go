@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"so-novel/internal/sse"
+	"go-novel/internal/sse"
 )
 
 // randomUserAgent 生成随机User-Agent

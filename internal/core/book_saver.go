@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"so-novel/internal/model"
-	"so-novel/internal/util"
+	"go-novel/internal/model"
+	"go-novel/internal/util"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/bmaupin/go-epub"

@@ -3,10 +3,10 @@ package rules
 import (
 	"encoding/json"
 	"fmt"
+	"go-novel/internal/embed"
+	"go-novel/internal/model"
 	"os"
 	"path/filepath"
-	"so-novel/internal/embed"
-	"so-novel/internal/model"
 	"sync"
 )
 

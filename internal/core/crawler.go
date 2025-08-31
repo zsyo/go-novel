@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"time"
 
-	"so-novel/internal/config"
-	"so-novel/internal/rules"
+	"go-novel/internal/config"
+	"go-novel/internal/rules"
 )
 
 const (

@@ -1,8 +1,10 @@
-# So Novel (Go版本)
+# Go Novel (So Novel Go版本)
 
 这是一个用Go语言重新实现的So Novel小说下载器，旨在减少服务器资源占用，同时尽量保持与原Java版本相同的规则兼容性。
 
 > ⚠️ **重要声明**：本项目是基于 [freeok/so-novel](https://github.com/freeok/so-novel) (Java版本) 重构的Go语言版本。原项目采用 [GNU Affero General Public License v3.0](https://github.com/freeok/so-novel/blob/main/LICENSE) 开源协议。根据AGPL-3.0许可证的要求，本项目也必须采用相同的许可证。
+
+> ❗ **免责提示**：本项目仅供学习与技术研究使用。使用前请认真阅读[法律免责声明](#法律免责声明-legal-disclaimer)，并确保遵守相关法律法规。
 
 ## 特性
 
@@ -47,7 +49,7 @@
 ## 目录结构
 
 ```
-so-novel/
+go-novel/
 ├── assets/            # 资源文件
     ├── configs.tar.gz # 默认配置和规则文件
 │   └── webui-preview.jpg # Web UI 预览图
@@ -90,8 +92,8 @@ so-novel/
 
 1. 克隆项目：
    ```bash
-   git clone https://github.com/zsyo/so-novel
-   cd so-novel
+   git clone https://github.com/zsyo/go-novel
+   cd go-novel
    ```
 
 2. 初始化Go模块：
@@ -137,23 +139,23 @@ so-novel/
 
 ```
 # 基本运行
-docker run -d --user=$(id -u):$(id -g) -p 7765:7765 --name so-novel so-novel:latest
+docker run -d --user=$(id -u):$(id -g) -p 7765:7765 --name go-novel go-novel:latest
 
 # 挂载本地配置目录
 docker run -d \
    --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
-   --name so-novel \
-   so-novel:latest
+   --name go-novel \
+   go-novel:latest
 
 # 挂载本地下载目录
 docker run -d \
    --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/downloads:/app/downloads \
-   --name so-novel \
-   so-novel:latest
+   --name go-novel \
+   go-novel:latest
 
 # 同时挂载配置和下载目录
 docker run -d \
@@ -161,8 +163,8 @@ docker run -d \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
    -v $(pwd)/downloads:/app/downloads \
-   --name so-novel \
-   so-novel:latest
+   --name go-novel \
+   go-novel:latest
 
 # 同时挂载配置和下载目录（精细挂载配置、规则目录）
 docker run -d \
@@ -171,17 +173,17 @@ docker run -d \
    -v $(pwd)/configs/config.ini:/app/configs/config.ini \
    -v $(pwd)/configs/rules:/app/configs/rules \
    -v $(pwd)/downloads:/app/downloads \
-   --name so-novel \
-   so-novel:latest
+   --name go-novel \
+   go-novel:latest
 ```
 
 ### 使用预构建的Docker镜像
 
-为了方便用户使用，我们已经构建了Docker镜像并推送到了Docker Hub，地址是：[https://hub.docker.com/r/zsyo/so-novel](https://hub.docker.com/r/zsyo/so-novel)
+为了方便用户使用，我们已经构建了Docker镜像并推送到了Docker Hub，地址是：[https://hub.docker.com/r/zsyo/go-novel](https://hub.docker.com/r/zsyo/go-novel)
 
 **注意**：如需挂载配置和规则,请通过以下命令下载配置文件压缩包并解压。
 ```bash
-wget https://raw.githubusercontent.com/zsyo/so-novel/main/assets/configs.tar.gz
+wget https://raw.githubusercontent.com/zsyo/go-novel/main/assets/configs.tar.gz
 
 tar -zxvf configs.tar.gz
 ```
@@ -190,23 +192,23 @@ tar -zxvf configs.tar.gz
 
 ```
 # 基本运行
-docker run -d -p 7765:7765 --name so-novel zsyo/so-novel:latest
+docker run -d -p 7765:7765 --name go-novel zsyo/go-novel:latest
 
 # 挂载本地配置目录
 docker run -d \
    --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
-   --name so-novel \
-   zsyo/so-novel:latest
+   --name go-novel \
+   zsyo/go-novel:latest
 
 # 挂载本地下载目录
 docker run -d \
    --user=$(id -u):$(id -g) \
    -p 7765:7765 \
    -v $(pwd)/downloads:/app/downloads \
-   --name so-novel \
-   zsyo/so-novel:latest
+   --name go-novel \
+   zsyo/go-novel:latest
 
 # 同时挂载配置和下载目录
 docker run -d \
@@ -214,8 +216,8 @@ docker run -d \
    -p 7765:7765 \
    -v $(pwd)/configs:/app/configs \
    -v $(pwd)/downloads:/app/downloads \
-   --name so-novel \
-   zsyo/so-novel:latest
+   --name go-novel \
+   zsyo/go-novel:latest
 
 # 同时挂载配置和下载目录（精细挂载配置、规则目录）
 docker run -d \
@@ -224,8 +226,8 @@ docker run -d \
    -v $(pwd)/configs/config.ini:/app/configs/config.ini \
    -v $(pwd)/configs/rules:/app/configs/rules \
    -v $(pwd)/downloads:/app/downloads \
-   --name so-novel \
-   zsyo/so-novel:latest
+   --name go-novel \
+   zsyo/go-novel:latest
 ```
 
 ### Docker镜像说明
@@ -349,6 +351,10 @@ port = 8118
 - [x] 核心爬虫逻辑实现
 - [x] 文件下载与保存
 - [x] 完整功能测试
+
+## 法律免责声明 (Legal Disclaimer)
+
+在使用本工具前，请务必仔细阅读我们的[法律免责声明](DISCLAIMER.md)。使用本工具即表示您已阅读、理解并同意遵守所有条款。
 
 ## 许可证
 

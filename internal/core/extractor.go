@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"so-novel/internal/util"
+	"go-novel/internal/util"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/antchfx/htmlquery"

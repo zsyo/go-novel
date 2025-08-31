@@ -1,8 +1,8 @@
 package main
 
 import (
-	"so-novel/internal/config"
-	"so-novel/internal/web"
+	"go-novel/internal/config"
+	"go-novel/internal/web"
 )
 
 func main() {

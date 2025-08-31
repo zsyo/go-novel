@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"so-novel/internal/embed"
+	"go-novel/internal/embed"
 
 	"github.com/spf13/viper"
 )

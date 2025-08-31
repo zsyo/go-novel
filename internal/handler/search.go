@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"go-novel/internal/config"
+	"go-novel/internal/core"
+	"go-novel/internal/model"
+	"go-novel/internal/rules"
 	"log"
 	"net/http"
-	"so-novel/internal/config"
-	"so-novel/internal/core"
-	"so-novel/internal/model"
-	"so-novel/internal/rules"
 	"sort"
 	"strings"
 	"sync"

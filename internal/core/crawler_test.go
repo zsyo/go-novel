@@ -1,7 +1,7 @@
 package core
 
 import (
-	"so-novel/internal/util"
+	"go-novel/internal/util"
 	"testing"
 )
 

@@ -1,4 +1,4 @@
-module so-novel
+module go-novel
 
 go 1.25
 
