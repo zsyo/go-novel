@@ -81,13 +81,11 @@ exit:
 		default:
 		}
 
-		wg.Add(1)
 		sem <- struct{}{} // 获取信号量
 
-		go func(idx int) {
+		wg.Go(func() {
 			defer func() {
 				<-sem // 释放信号量
-				wg.Done()
 			}()
 
 			// 检查context是否已取消
@@ -99,9 +97,9 @@ exit:
 			}
 
 			// 下载章节内容
-			content, err := c.downloadChapterContent(ctx, chapters[idx].URL, rule)
+			content, err := c.downloadChapterContent(ctx, chapters[i].URL, rule)
 			if err != nil {
-				errMsg := fmt.Sprintf("下载章节失败 %s: %v", chapters[idx].Title, err)
+				errMsg := fmt.Sprintf("下载章节失败 %s: %v", chapters[i].Title, err)
 				errChan <- errors.New(errMsg)
 				// 发送错误信息到前端
 				sse.SendError(errMsg)
@@ -112,7 +110,7 @@ exit:
 
 			// 更新章节内容
 			mutex.Lock()
-			chapters[idx].Content = content
+			chapters[i].Content = content
 			completed++
 			// 发送进度更新
 			sendProgress(completed, total)
@@ -125,7 +123,7 @@ exit:
 				interval := time.Duration(minInterval + rand.Intn(maxInterval-minInterval))
 				time.Sleep(time.Millisecond * interval)
 			}
-		}(i)
+		})
 	}
 
 	// 等待所有下载完成或被取消

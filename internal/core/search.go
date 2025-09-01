@@ -77,29 +77,27 @@ func (c *Crawler) aggregatedSearch(keyword string) ([]model.SearchResult, error)
 
 	// 对每个源并发搜索
 	for _, rule := range searchableRules {
-		wg.Add(1)
 		semaphore <- struct{}{} // 获取信号量
 
-		go func(r model.Rule) {
+		wg.Go(func() {
 			defer func() {
 				<-semaphore // 释放信号量
-				wg.Done()
 			}()
 
 			// 创建新的爬虫实例用于这个源的搜索
 			searchCfg := *c.config // 复制配置
-			searchCfg.Source.SourceId = r.ID
+			searchCfg.Source.SourceId = rule.ID
 			searchCrawler := NewCrawler(&searchCfg)
 
 			// 执行搜索
-			searchResults, err := searchCrawler.doSearch(keyword, &r)
+			searchResults, err := searchCrawler.doSearch(keyword, &rule)
 			if err != nil {
-				fmt.Printf("搜索源 %s (%d) 异常: %v\n", r.Name, r.ID, err)
+				fmt.Printf("搜索源 %s (%d) 异常: %v\n", rule.Name, rule.ID, err)
 				return
 			}
 
 			if len(searchResults) > 0 {
-				fmt.Printf("书源 %d (%s) 搜索到 %d 条记录\n", r.ID, r.Name, len(searchResults))
+				fmt.Printf("书源 %d (%s) 搜索到 %d 条记录\n", rule.ID, rule.Name, len(searchResults))
 
 				// 安全地添加到结果列表
 				resultsMutex.Lock()
@@ -107,9 +105,9 @@ func (c *Crawler) aggregatedSearch(keyword string) ([]model.SearchResult, error)
 				resultsMutex.Unlock()
 			} else {
 				// 即使没有结果也记录一下，方便调试
-				fmt.Printf("书源 %d (%s) 搜索到 0 条记录\n", r.ID, r.Name)
+				fmt.Printf("书源 %d (%s) 搜索到 0 条记录\n", rule.ID, rule.Name)
 			}
-		}(rule)
+		})
 	}
 
 	// 等待所有搜索完成

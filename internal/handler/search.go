@@ -57,18 +57,16 @@ func performAggregatedSearch(keyword string, cfg *config.Config) []model.SearchR
 
 	// 对每个源并发搜索
 	for _, rule := range searchableRules {
-		wg.Add(1)
 		semaphore <- struct{}{} // 获取信号量
 
-		go func(r model.Rule) {
+		wg.Go(func() {
 			defer func() {
 				<-semaphore // 释放信号量
-				wg.Done()
 			}()
 
 			// 创建爬虫实例
 			searchCfg := *cfg // 复制配置
-			searchCfg.Source.SourceId = r.ID
+			searchCfg.Source.SourceId = rule.ID
 			crawler := core.NewCrawler(&searchCfg)
 
 			// 执行搜索并重试
@@ -85,12 +83,12 @@ func performAggregatedSearch(keyword string, cfg *config.Config) []model.SearchR
 
 				// 检查是否是超时错误，如果是则不重试
 				if isTimeoutError(searchErr) {
-					log.Printf("搜索源 %s (%d) 超时错误: %v, 跳过重试", r.Name, r.ID, searchErr)
+					log.Printf("搜索源 %s (%d) 超时错误: %v, 跳过重试", rule.Name, rule.ID, searchErr)
 					break
 				}
 
 				// 记录错误和重试信息
-				log.Printf("搜索源 %s (%d) 异常: %v, 重试: %d/%d", r.Name, r.ID, searchErr, retry+1, maxRetries)
+				log.Printf("搜索源 %s (%d) 异常: %v, 重试: %d/%d", rule.Name, rule.ID, searchErr, retry+1, maxRetries)
 
 				// 如果还有重试机会，等待一段时间后重试
 				if retry < maxRetries {
@@ -101,12 +99,12 @@ func performAggregatedSearch(keyword string, cfg *config.Config) []model.SearchR
 
 			// 如果搜索仍然失败，记录并返回
 			if searchErr != nil {
-				log.Printf("搜索源 %s (%d) 失败: %v", r.Name, r.ID, searchErr)
+				log.Printf("搜索源 %s (%d) 失败: %v", rule.Name, rule.ID, searchErr)
 				return
 			}
 
 			if len(searchResults) > 0 {
-				log.Printf("书源 %d (%s) 搜索到 %d 条记录", r.ID, r.Name, len(searchResults))
+				log.Printf("书源 %d (%s) 搜索到 %d 条记录", rule.ID, rule.Name, len(searchResults))
 
 				// 安全地添加到结果列表
 				resultsMutex.Lock()
@@ -114,9 +112,9 @@ func performAggregatedSearch(keyword string, cfg *config.Config) []model.SearchR
 				resultsMutex.Unlock()
 			} else {
 				// 即使没有结果也记录一下，方便调试
-				log.Printf("书源 %d (%s) 搜索到 0 条记录", r.ID, r.Name)
+				log.Printf("书源 %d (%s) 搜索到 0 条记录", rule.ID, rule.Name)
 			}
-		}(rule)
+		})
 	}
 
 	// 等待所有搜索完成
