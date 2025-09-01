@@ -11,18 +11,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Client 表示一个SSE客户端
+type Client struct {
+	ID   string
+	Chan chan string
+}
+
 // ClientManager SSE客户端管理器
 type ClientManager struct {
-	clients map[chan string]bool
+	clients map[string]*Client
 	mutex   sync.RWMutex
 }
 
 var manager = &ClientManager{
-	clients: make(map[chan string]bool),
+	clients: make(map[string]*Client),
 }
 
 // ProgressSSE SSE处理函数
 func ProgressSSE(c *gin.Context) {
+	// 获取客户端ID参数，必须提供
+	clientID := c.Query("clientId")
+	if clientID == "" {
+		// 如果没有提供clientId，返回错误
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少clientId参数"})
+		return
+	}
+
 	// 设置SSE响应头
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -34,12 +48,18 @@ func ProgressSSE(c *gin.Context) {
 	// 创建客户端通道，增加缓冲区大小以减少阻塞风险
 	clientChan := make(chan string, 50)
 
-	// 添加客户端到管理器
-	manager.addClient(clientChan)
-	defer manager.removeClient(clientChan)
+	// 创建客户端对象
+	client := &Client{
+		ID:   clientID,
+		Chan: clientChan,
+	}
 
-	// 发送初始连接消息表示连接已建立
-	initialMsg := `{"type":"connected","message":"connected"}`
+	// 添加客户端到管理器
+	manager.addClient(client)
+	defer manager.removeClient(clientID)
+
+	// 发送初始连接消息表示连接已建立，包含客户端ID
+	initialMsg := fmt.Sprintf(`{"type":"connected","message":"connected","clientId":"%s"}`, clientID)
 	clientChan <- initialMsg
 
 	// 使用stream模式发送SSE消息
@@ -80,18 +100,37 @@ func (r sseRender) WriteContentType(w http.ResponseWriter) {
 }
 
 // 添加客户端
-func (m *ClientManager) addClient(client chan string) {
+func (m *ClientManager) addClient(client *Client) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	m.clients[client] = true
+	m.clients[client.ID] = client
 }
 
 // 移除客户端
-func (m *ClientManager) removeClient(client chan string) {
+func (m *ClientManager) removeClient(clientID string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	delete(m.clients, client)
-	close(client)
+	if client, exists := m.clients[clientID]; exists {
+		delete(m.clients, clientID)
+		close(client.Chan)
+	}
+}
+
+// 向特定客户端推送消息
+func (m *ClientManager) sendMessageToClient(clientID, message string) bool {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	if client, exists := m.clients[clientID]; exists {
+		select {
+		case client.Chan <- message:
+			return true
+		default:
+			// 如果通道已满，跳过该客户端
+			return false
+		}
+	}
+	return false
 }
 
 // 广播消息到所有客户端
@@ -99,15 +138,18 @@ func (m *ClientManager) broadcastMessage(message string) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	// fmt.Printf("Debug: Current clients length: %d\n", len(m.clients))
-	for client := range m.clients {
+	for _, client := range m.clients {
 		select {
-		case client <- message:
-			// fmt.Printf("Debug: Broadcasting message to client: %s\n", message)
+		case client.Chan <- message:
 		default:
 			// 如果通道已满，跳过该客户端
 		}
 	}
+}
+
+// PushMessageToClient 推送消息到特定客户端
+func PushMessageToClient(clientID, message string) bool {
+	return manager.sendMessageToClient(clientID, message)
 }
 
 // PushMessageToAll 推送消息到所有客户端
@@ -122,32 +164,24 @@ func SendHeartbeat() {
 	PushMessageToAll(heartbeatMessage)
 }
 
-// SendProgress 发送下载进度
-// 简化数据结构，只发送必要的进度信息
-func SendProgress(current, total int) {
+// SendProgress 发送下载进度到特定客户端
+func SendProgressToClient(clientID string, current, total int) {
 	message := fmt.Sprintf(`{"type":"book-download","index":%d,"total":%d}`, current, total)
-	PushMessageToAll(message)
+	PushMessageToClient(clientID, message)
 }
 
-// SendError 发送错误信息
-func SendError(message string) {
+// SendErrorToClient 发送错误信息到特定客户端
+func SendErrorToClient(clientID, message string) {
 	// 转义JSON中的特殊字符
-	message = strings.ReplaceAll(message, "\"", "\\\"")
-	message = strings.ReplaceAll(message, "\n", " ")
+	escapedMessage := strings.ReplaceAll(message, "\"", "\\\"")
+	escapedMessage = strings.ReplaceAll(escapedMessage, "\n", " ")
 
-	errorMessage := fmt.Sprintf(`{"type":"book-download-error","message":"%s"}`, message)
-	PushMessageToAll(errorMessage)
+	errorMessage := fmt.Sprintf(`{"type":"book-download-error","message":"%s"}`, escapedMessage)
+	PushMessageToClient(clientID, errorMessage)
 }
 
-// SendProgressWithChapterName 发送带章节名的下载进度
-// 简化版本，忽略章节名，直接调用SendProgress
-func SendProgressWithChapterName(current, total int, chapterName string) {
-	// 不再发送章节名，直接调用简化版本
-	SendProgress(current, total)
-}
-
-// SendComplete 发送完成消息
-func SendComplete(total int) {
+// SendCompleteToClient 发送完成消息到特定客户端
+func SendCompleteToClient(clientID string, total int) {
 	message := fmt.Sprintf(`{"type":"book-download-complete","total":%d}`, total)
-	PushMessageToAll(message)
+	PushMessageToClient(clientID, message)
 }

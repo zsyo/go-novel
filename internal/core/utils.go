@@ -41,31 +41,30 @@ func joinURL(baseURL, relativeURL string) string {
 	return base.ResolveReference(rel).String()
 }
 
-// sendProgress 发送进度更新
-func sendProgress(current, total int) {
-	// 发送进度到所有SSE客户端
-	sse.SendProgress(current, total)
+// sendProgress 发送进度更新到特定客户端
+func sendProgressToClient(clientID string, current, total int) {
+	// 发送进度到特定SSE客户端
+	sse.SendProgressToClient(clientID, current, total)
 
 	// 记录日志，方便调试
 	fmt.Printf("下载进度: %d/%d (%.2f%%)\n", current, total, float64(current)/float64(total)*100)
 }
 
-// sendFinalProgress 发送最终完成进度
-func sendFinalProgress(total int) {
+// sendFinalProgressToClient 发送最终完成进度到特定客户端
+func sendFinalProgressToClient(clientID string, total int) {
 	// 确保进度为100%
-	sse.SendProgress(total, total)
+	sse.SendProgressToClient(clientID, total, total)
 
 	// 发送下载完成消息，使用标准的SendComplete函数
-	sse.SendComplete(total)
+	sse.SendCompleteToClient(clientID, total)
 
 	// 记录日志
 	fmt.Printf("下载完成，总章节数: %d\n", total)
 }
 
-// sendError 发送错误信息到前端
-func sendError(message string) {
-	errorMessage := fmt.Sprintf(`{"type":"book-download-error","message":"%s"}`, message)
-	sse.PushMessageToAll(errorMessage)
+// sendErrorToClient 发送错误信息到特定客户端
+func sendErrorToClient(clientID, message string) {
+	sse.SendErrorToClient(clientID, message)
 	fmt.Printf("下载错误: %s\n", message)
 }
 

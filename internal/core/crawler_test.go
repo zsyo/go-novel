@@ -40,30 +40,6 @@ func TestPaginationLogic(t *testing.T) {
 	t.Skip("跳过需要网络请求的分页测试")
 }
 
-func TestBuildSearchGetParams(t *testing.T) {
-	// 测试GET参数构建函数
-	keyword := "仙逆"
-	url := "https://www.example.com/search.html?searchkey=%s"
-
-	result := BuildSearchGetParams(url, keyword)
-	// 期望的结果应该是URL编码后的关键字
-	expected := "https://www.example.com/search.html?searchkey=%E4%BB%99%E9%80%86"
-
-	if result != expected {
-		t.Errorf("BuildSearchGetParams结果不正确，期望: %s, 实际: %s", expected, result)
-	}
-
-	// 测试路径中的%s会被处理
-	url2 := "https://www.example.com/search/%s.html?searchkey=test"
-	result2 := BuildSearchGetParams(url2, keyword)
-	// 路径中的%s应该被替换
-	expected2 := "https://www.example.com/search/%E4%BB%99%E9%80%86.html?searchkey=test"
-
-	if result2 != expected2 {
-		t.Errorf("BuildSearchGetParams结果不正确，期望: %s, 实际: %s", expected2, result2)
-	}
-}
-
 func TestBuildSearchPostData(t *testing.T) {
 	// 测试POST数据构建函数
 	keyword := "仙逆"

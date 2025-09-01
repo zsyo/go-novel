@@ -112,8 +112,30 @@
     let globalSseConnected = false
     // 当前下载的书籍ID（用于停止下载）
     let currentDownloadId = null
+    // 客户端ID，用于SSE连接标识
+    let clientId = null
 
     // 工具函数
+    // 生成UUID函数
+    const generateUUID = () => {
+      // 优先使用Crypto API生成UUID
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        // 使用现代浏览器提供的Crypto API生成UUID
+        return crypto.randomUUID();
+      } else {
+        // 降级方案：使用Math.random生成UUID格式的字符串
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          var r = Math.random() * 16 | 0,
+              v = c == 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+    }
+    
+    // 页面加载时生成客户端ID
+    clientId = generateUUID();
+    console.log('[页面]生成客户端ID:', clientId);
+
     const showTip = (text = '正在加载...', showProgress = false) => {
       tipText.innerHTML = text
       tipEle.style.display = 'flex'
@@ -268,6 +290,12 @@
         return;
       }
       
+      // 检查客户端ID是否存在
+      if (!clientId) {
+        alert('缺少客户端ID，无法开始下载');
+        return;
+      }
+      
       // 检查SSE连接状态
       const checkSSEConnection = () => {
         console.log('检查SSE连接状态: ', globalSseConnected);
@@ -311,20 +339,11 @@
         // 标记下载状态
         isDownloading = true;
         
-        // 生成当前下载的唯一ID（优先使用Crypto API生成UUID）
-        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-          // 使用现代浏览器提供的Crypto API生成UUID
-          currentDownloadId = crypto.randomUUID();
-        } else {
-          // 降级方案：使用Math.random生成UUID格式的字符串
-          currentDownloadId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0,
-                v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-          });
-        }
+        // 生成当前下载的唯一ID
+        currentDownloadId = generateUUID();
         
         console.log('开始下载，设置isDownloading=true, format=' + format + ', downloadId=' + currentDownloadId);
+        console.log('[下载]当前客户端ID:', clientId);
         
         // 显示进度提示
         showTip('正在解析目录...', true);
@@ -339,11 +358,14 @@
         params.append('format', format);
         // 添加下载ID参数
         params.append('downloadId', currentDownloadId);
+        // 添加客户端ID参数
+        params.append('clientId', clientId);
         const query = params.toString();
         
         // 请求URL
         const url = `/api/book/fetch?${query}`;
         console.log('请求URL:', url);
+        console.log('请求参数:', [...params.entries()]);
         
         // 发送请求
         fetch(url)
@@ -494,8 +516,19 @@
           sseInstance = null;
         }
         
+        // 检查客户端ID是否存在
+        if (!clientId) {
+          console.error('[SSE]缺少客户端ID，无法建立连接');
+          updateTip('客户端ID缺失，无法建立服务器连接，请刷新页面重试');
+          return;
+        }
+        
+        // 构建SSE连接URL，必须包含客户端ID
+        const sseUrl = `${sseProtocol}://${hostname}:${port}/sse/book/progress?clientId=${encodeURIComponent(clientId)}`
+        console.log('[SSE]正在连接到:', sseUrl)
+        
         // 创建新连接
-        sseInstance = new EventSource(`${sseProtocol}://${hostname}:${port}/sse/book/progress`)
+        sseInstance = new EventSource(sseUrl)
         
         // 下载完成事件
         let downloadCompleted = false
@@ -600,6 +633,7 @@
         // 连接建立成功
         sseInstance.onopen = () => {
           console.log('[SSE]连接已建立，准备接收消息')
+          console.log('[SSE]当前客户端ID:', clientId)
           sseConnected = true;
           globalSseConnected = true; // 更新全局状态
           reconnectAttempts = 0; // 重置重连尝试次数
@@ -631,6 +665,21 @@
             console.log('[SSE]连接成功，收到初始连接消息');
             lastHeartbeatTime = Date.now(); // 将初始连接消息也视为心跳包
             return;
+          }
+          
+          // 处理包含clientId的连接消息
+          if (e.data.includes('"type":"connected"') && e.data.includes('"clientId"')) {
+            try {
+              const data = JSON.parse(e.data);
+              if (data.clientId) {
+                console.log('[SSE]连接成功，客户端ID:', data.clientId);
+                clientId = data.clientId; // 更新客户端ID（如果服务器返回了新的）
+              }
+              lastHeartbeatTime = Date.now(); // 将初始连接消息也视为心跳包
+              return;
+            } catch (parseError) {
+              console.error('[SSE]解析连接消息失败:', parseError);
+            }
           }
           
           try {
@@ -991,6 +1040,7 @@
     setTimeout(() => {
       globalSseConnected = sseController.isConnected();
       console.log('初始化检查SSE连接状态：', globalSseConnected);
+      console.log('当前客户端ID：', clientId);
       initialCheckDone = true;
       
       // 如果连接失败，尝试重连

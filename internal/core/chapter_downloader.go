@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go-novel/internal/model"
-	"go-novel/internal/sse"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -23,8 +22,20 @@ func (c *Crawler) downloadChapters(book *model.Book, chapters []model.Chapter, r
 	total := len(chapters)
 	fmt.Printf("共计 %d 章\n", total)
 
-	// 发送开始下载消息
-	sendProgress(0, total)
+	// 获取客户端ID，必须提供
+	clientID := ""
+	if c.config.Download.DownloadId != "" {
+		downloadManager := GetDownloadManager()
+		clientID, _ = downloadManager.GetClientID(c.config.Download.DownloadId)
+	}
+
+	// 如果没有客户端ID，返回错误
+	if clientID == "" {
+		return errors.New("缺少客户端ID，无法发送进度更新")
+	}
+
+	// 发送开始下载消息到特定客户端
+	sendProgressToClient(clientID, 0, total)
 
 	// 设置线程数
 	threads := c.config.Crawl.Threads
@@ -38,20 +49,28 @@ func (c *Crawler) downloadChapters(book *model.Book, chapters []model.Chapter, r
 	fmt.Printf("开始下载《%s》(%s) 共计 %d 章 | 线程数：%d\n",
 		book.BookName, book.Author, total, threads)
 
-	// 创建带取消功能的context
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 如果有下载ID，将任务添加到管理器
+	// 获取context，如果下载ID存在的话
+	var ctx context.Context
+	var cancel context.CancelFunc
 	if c.config.Download.DownloadId != "" {
 		downloadManager := GetDownloadManager()
-		downloadManager.AddTask(c.config.Download.DownloadId, ctx, cancel)
-		fmt.Printf("任务已添加到下载管理器，下载ID: %s\n", c.config.Download.DownloadId)
-		// 确保在函数结束时移除任务
-		defer func() {
-			downloadManager.RemoveTask(c.config.Download.DownloadId)
-			fmt.Printf("任务已从下载管理器移除，下载ID: %s\n", c.config.Download.DownloadId)
-		}()
+		// 获取任务的context
+		downloadManager.mutex.RLock()
+		task, exists := downloadManager.tasks[c.config.Download.DownloadId]
+		downloadManager.mutex.RUnlock()
+
+		if exists {
+			ctx = task.Context
+			cancel = task.Cancel
+		} else {
+			// 如果任务不存在，创建新的context
+			ctx, cancel = context.WithCancel(context.Background())
+			defer cancel()
+		}
+	} else {
+		// 如果没有下载ID，创建新的context
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
 	}
 
 	// 创建信号量控制并发
@@ -101,8 +120,8 @@ exit:
 			if err != nil {
 				errMsg := fmt.Sprintf("下载章节失败 %s: %v", chapters[i].Title, err)
 				errChan <- errors.New(errMsg)
-				// 发送错误信息到前端
-				sse.SendError(errMsg)
+				// 发送错误信息到特定客户端
+				sendErrorToClient(clientID, errMsg)
 				// 取消context，停止所有下载
 				cancel()
 				return
@@ -112,8 +131,8 @@ exit:
 			mutex.Lock()
 			chapters[i].Content = content
 			completed++
-			// 发送进度更新
-			sendProgress(completed, total)
+			// 发送进度更新到特定客户端
+			sendProgressToClient(clientID, completed, total)
 			mutex.Unlock()
 
 			// 控制下载速度
@@ -135,8 +154,8 @@ exit:
 	case <-ctx.Done():
 		// context被取消，说明有章节下载失败或用户手动取消
 		fmt.Println("下载已被取消，可能是因为章节下载失败或用户手动取消")
-		// 发送错误消息而不是完成消息
-		sendError("下载已被取消")
+		// 发送错误消息到特定客户端
+		sendErrorToClient(clientID, "下载已被取消")
 		return errors.New("下载已被取消")
 	default:
 	}
@@ -156,13 +175,14 @@ exit:
 	// 保存书籍
 	err := c.saveBook(ctx, book, chapters)
 	if err != nil {
-		// 发送错误消息
-		sendError(fmt.Sprintf("保存书籍失败: %v", err))
+		// 发送错误消息到特定客户端
+		errMsg := fmt.Sprintf("保存书籍失败: %v", err)
+		sendErrorToClient(clientID, errMsg)
 		return fmt.Errorf("保存书籍失败: %v", err)
 	}
 
-	// 发送最终的完成消息，确保前端收到100%进度
-	sendFinalProgress(total)
+	// 发送最终的完成消息到特定客户端
+	sendFinalProgressToClient(clientID, total)
 
 	return nil
 }
@@ -213,15 +233,7 @@ func (c *Crawler) getWithRetry(ctx context.Context, url string) (*http.Response,
 	}
 
 	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := &http.Client{
-		Timeout: c.client.Timeout,
-	}
-	if c.client.Transport != nil {
-		client.Transport = c.client.Transport
-	}
-	if c.client.Jar != nil {
-		client.Jar = c.client.Jar
-	}
+	client := c.NewHTTPClinet()
 
 	// 初始尝试
 	resp, err = client.Get(url)

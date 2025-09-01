@@ -8,9 +8,10 @@ import (
 
 // DownloadTask 表示一个下载任务
 type DownloadTask struct {
-	ID      string
-	Context context.Context
-	Cancel  context.CancelFunc
+	ID       string
+	ClientID string
+	Context  context.Context
+	Cancel   context.CancelFunc
 }
 
 // DownloadManager 下载任务管理器
@@ -25,14 +26,15 @@ var downloadManager = &DownloadManager{
 }
 
 // AddTask 添加下载任务
-func (dm *DownloadManager) AddTask(id string, ctx context.Context, cancel context.CancelFunc) {
+func (dm *DownloadManager) AddTask(id, clientID string, ctx context.Context, cancel context.CancelFunc) {
 	dm.mutex.Lock()
 	defer dm.mutex.Unlock()
 
 	dm.tasks[id] = &DownloadTask{
-		ID:      id,
-		Context: ctx,
-		Cancel:  cancel,
+		ID:       id,
+		ClientID: clientID,
+		Context:  ctx,
+		Cancel:   cancel,
 	}
 }
 
@@ -59,6 +61,18 @@ func (dm *DownloadManager) CancelTask(id string) bool {
 	task.Cancel()
 	fmt.Printf("已调用取消函数，下载ID: %s\n", id)
 	return true
+}
+
+// GetClientID 获取下载任务对应的客户端ID
+func (dm *DownloadManager) GetClientID(id string) (string, bool) {
+	dm.mutex.RLock()
+	defer dm.mutex.RUnlock()
+
+	task, exists := dm.tasks[id]
+	if !exists {
+		return "", false
+	}
+	return task.ClientID, true
 }
 
 // GetDownloadManager 获取下载管理器实例

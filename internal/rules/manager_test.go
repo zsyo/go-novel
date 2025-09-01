@@ -29,16 +29,6 @@ func TestRuleManager(t *testing.T) {
 		t.Error("没有找到ID为1的规则")
 	}
 
-	// 测试获取所有规则
-	allRules, err := manager.GetAllRules("main-rules.json")
-	if err != nil {
-		t.Fatalf("获取所有规则失败: %v", err)
-	}
-
-	if len(allRules) != len(rules) {
-		t.Error("获取的所有规则数量不匹配")
-	}
-
 	// 测试获取可搜索规则
 	searchableRules, err := manager.GetSearchableRules("main-rules.json")
 	if err != nil {

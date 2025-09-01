@@ -105,10 +105,6 @@ func (rm *RuleManager) GetRuleById(filename string, id int) (*model.Rule, error)
 	return nil, nil
 }
 
-func (rm *RuleManager) GetAllRules(filename string) ([]model.Rule, error) {
-	return rm.LoadRules(filename)
-}
-
 func (rm *RuleManager) GetSearchableRules(filename string) ([]model.Rule, error) {
 	allRules, err := rm.LoadRules(filename)
 	if err != nil {

@@ -172,15 +172,7 @@ func (c *Crawler) doSearch(keyword string, rule *model.Rule) ([]model.SearchResu
 
 	// 发起请求
 	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := &http.Client{
-		Timeout: c.client.Timeout,
-	}
-	if c.client.Transport != nil {
-		client.Transport = c.client.Transport
-	}
-	if c.client.Jar != nil {
-		client.Jar = c.client.Jar
-	}
+	client := c.NewHTTPClinet()
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -406,13 +398,7 @@ func (c *Crawler) parseSearchResultsInternal(resp *http.Response, rule *model.Ru
 
 				// 发送请求
 				// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-				client := &http.Client{
-					Timeout: c.client.Timeout,
-					Jar:     c.client.Jar,
-				}
-				if c.client.Transport != nil {
-					client.Transport = c.client.Transport
-				}
+				client := c.NewHTTPClinet()
 
 				pageResp, err := client.Do(pageReq)
 				if err != nil {

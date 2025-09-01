@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"go-novel/internal/config"
 	"go-novel/internal/core"
+	"go-novel/internal/sse"
 	"go-novel/internal/util"
 	"io"
 	"log"
@@ -37,9 +39,18 @@ func BookFetch(c *gin.Context) {
 	}
 	// 获取下载ID参数
 	downloadId := c.Query("downloadId")
+	// 获取客户端ID参数，必须提供
+	clientId := c.Query("clientId")
 
+	// 检查必需参数
 	if bookName == "" || bookUrl == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "书名或URL不能为空"})
+		return
+	}
+
+	// 检查客户端ID参数
+	if clientId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少clientId参数"})
 		return
 	}
 
@@ -64,9 +75,27 @@ func BookFetch(c *gin.Context) {
 
 	// 开启一个 goroutine 执行下载
 	go func() {
+		// 在开始爬取前，先将任务添加到下载管理器
+		if downloadId != "" {
+			downloadManager := core.GetDownloadManager()
+			// 创建带取消功能的context
+			ctx, cancel := context.WithCancel(context.Background())
+			downloadManager.AddTask(downloadId, clientId, ctx, cancel)
+			fmt.Printf("任务已添加到下载管理器，下载ID: %s\n", downloadId)
+			// 确保在函数结束时移除任务
+			defer func() {
+				downloadManager.RemoveTask(downloadId)
+				fmt.Printf("任务已从下载管理器移除，下载ID: %s\n", downloadId)
+			}()
+		}
+
 		err := crawler.Crawl(bookUrl)
 		if err != nil {
 			log.Printf("下载书籍失败: %v", err)
+			// 发送错误消息到特定客户端
+			if clientId != "" && downloadId != "" {
+				sse.SendErrorToClient(clientId, fmt.Sprintf("下载书籍失败: %v", err))
+			}
 		}
 	}()
 

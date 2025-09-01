@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -18,15 +17,7 @@ func (c *Crawler) parseBookInfo(bookUrl string, rule *model.Rule) (*model.Book, 
 	fmt.Printf("Debug: 开始解析书籍信息，URL: %s\n", bookUrl)
 
 	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := &http.Client{
-		Timeout: c.client.Timeout,
-	}
-	if c.client.Transport != nil {
-		client.Transport = c.client.Transport
-	}
-	if c.client.Jar != nil {
-		client.Jar = c.client.Jar
-	}
+	client := c.NewHTTPClinet()
 
 	resp, err := client.Get(bookUrl)
 	if err != nil {
@@ -265,15 +256,7 @@ func (c *Crawler) parseToc(bookUrl string, rule *model.Rule) ([]model.Chapter, e
 
 	// 发起HTTP请求
 	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := &http.Client{
-		Timeout: c.client.Timeout,
-	}
-	if c.client.Transport != nil {
-		client.Transport = c.client.Transport
-	}
-	if c.client.Jar != nil {
-		client.Jar = c.client.Jar
-	}
+	client := c.NewHTTPClinet()
 
 	resp, err := client.Get(tocUrl)
 	if err != nil {
