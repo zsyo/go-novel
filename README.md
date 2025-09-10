@@ -371,3 +371,48 @@ GNU Affero General Public License v3.0
 **注意**：由于AGPL-3.0许可证的传染性，如果您在网络服务器上使用或修改本软件，您需要：
 - 公开您对本软件所做的任何修改
 - 如果您的项目是专有软件或使用不兼容的许可证，您可能需要寻求法律建议
+
+## 第三方依赖
+
+|    库名    |    许可证类型    |   许可证链接   |
+|:-----------|:----------------:|:--------------:|
+| github.com/PuerkitoBio/goquery | BSD-3-Clause | [查看](https://github.com/PuerkitoBio/goquery/blob/v1.10.3/LICENSE) |
+| github.com/andybalholm/cascadia | BSD-2-Clause | [查看](https://github.com/andybalholm/cascadia/blob/v1.3.3/LICENSE) |
+| github.com/antchfx/htmlquery | MIT | [查看](https://github.com/antchfx/htmlquery/blob/v1.3.4/LICENSE) |
+| github.com/antchfx/xpath | MIT | [查看](https://github.com/antchfx/xpath/blob/v1.3.5/LICENSE) |
+| github.com/bmaupin/go-epub | MIT | [查看](https://github.com/bmaupin/go-epub/blob/v1.1.0/LICENSE) |
+| github.com/dlclark/regexp2 | MIT | [查看](https://github.com/dlclark/regexp2/blob/v1.11.5/LICENSE) |
+| github.com/dop251/goja | MIT | [查看](https://github.com/dop251/goja/blob/58d95d85e994/LICENSE) |
+| github.com/dop251/goja/ftoa/internal/fast | BSD-3-Clause | [查看](https://github.com/dop251/goja/blob/58d95d85e994/ftoa/internal/fast/LICENSE_V8) |
+| github.com/fsnotify/fsnotify | BSD-3-Clause | [查看](https://github.com/fsnotify/fsnotify/blob/v1.9.0/LICENSE) |
+| github.com/gabriel-vasile/mimetype | MIT | [查看](https://github.com/gabriel-vasile/mimetype/blob/v1.4.10/LICENSE) |
+| github.com/gin-contrib/sse | MIT | [查看](https://github.com/gin-contrib/sse/blob/v1.1.0/LICENSE) |
+| github.com/gin-gonic/gin | MIT | [查看](https://github.com/gin-gonic/gin/blob/v1.10.1/LICENSE) |
+| github.com/go-playground/locales | MIT | [查看](https://github.com/go-playground/locales/blob/v0.14.1/LICENSE) |
+| github.com/go-playground/universal-translator | MIT | [查看](https://github.com/go-playground/universal-translator/blob/v0.18.1/LICENSE) |
+| github.com/go-playground/validator/v10 | MIT | [查看](https://github.com/go-playground/validator/blob/v10.27.0/LICENSE) |
+| github.com/go-sourcemap/sourcemap | BSD-2-Clause | [查看](https://github.com/go-sourcemap/sourcemap/blob/v2.1.4/LICENSE) |
+| github.com/gofrs/uuid | MIT | [查看](https://github.com/gofrs/uuid/blob/v4.4.0/LICENSE) |
+| github.com/golang/groupcache/lru | Apache-2.0 | [查看](https://github.com/golang/groupcache/blob/2c02b8208cf8/LICENSE) |
+| github.com/google/pprof/profile | Apache-2.0 | [查看](https://github.com/google/pprof/blob/f64d9cf942d6/LICENSE) |
+| github.com/hashicorp/hcl | MPL-2.0 | [查看](https://github.com/hashicorp/hcl/blob/v1.0.0/LICENSE) |
+| github.com/leodido/go-urn | MIT | [查看](https://github.com/leodido/go-urn/blob/v1.4.0/LICENSE) |
+| github.com/magiconair/properties | BSD-2-Clause | [查看](https://github.com/magiconair/properties/blob/v1.8.7/LICENSE.md) |
+| github.com/mattn/go-isatty | MIT | [查看](https://github.com/mattn/go-isatty/blob/v0.0.20/LICENSE) |
+| github.com/mitchellh/mapstructure | MIT | [查看](https://github.com/mitchellh/mapstructure/blob/v1.5.0/LICENSE) |
+| github.com/pelletier/go-toml/v2 | MIT | [查看](https://github.com/pelletier/go-toml/blob/v2.2.4/LICENSE) |
+| github.com/sagikazarmark/slog-shim | BSD-3-Clause | [查看](https://github.com/sagikazarmark/slog-shim/blob/v0.1.0/LICENSE) |
+| github.com/spf13/afero | Apache-2.0 | [查看](https://github.com/spf13/afero/blob/v1.14.0/LICENSE.txt) |
+| github.com/spf13/cast | MIT | [查看](https://github.com/spf13/cast/blob/v1.9.2/LICENSE) |
+| github.com/spf13/pflag | BSD-3-Clause | [查看](https://github.com/spf13/pflag/blob/v1.0.7/LICENSE) |
+| github.com/spf13/viper | MIT | [查看](https://github.com/spf13/viper/blob/v1.19.0/LICENSE) |
+| github.com/subosito/gotenv | MIT | [查看](https://github.com/subosito/gotenv/blob/v1.6.0/LICENSE) |
+| github.com/ugorji/go/codec | MIT | [查看](https://github.com/ugorji/go/blob/codec/v1.3.0/codec/LICENSE) |
+| github.com/vincent-petithory/dataurl | MIT | [查看](https://github.com/vincent-petithory/dataurl/blob/v1.0.0/LICENSE) |
+| golang.org/x/crypto/sha3 | BSD-3-Clause | 无 |
+| golang.org/x/net | BSD-3-Clause | 无 |
+| golang.org/x/sys | BSD-3-Clause | 无 |
+| golang.org/x/text | BSD-3-Clause | 无 |
+| google.golang.org/protobuf | BSD-3-Clause | 无 |
+| gopkg.in/ini.v1 | Apache-2.0 | [查看](https://github.com/go-ini/ini/blob/v1.67.0/LICENSE) |
+| gopkg.in/yaml.v3 | MIT | [查看](https://github.com/go-yaml/yaml/blob/v3.0.1/LICENSE) |
