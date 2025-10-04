@@ -36,9 +36,6 @@ go.work
 *.tmp
 *.log
 
-# Configuration files
-configs/
-
 # Download files
 downloads/
 
