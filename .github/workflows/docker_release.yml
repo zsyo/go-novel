@@ -1,0 +1,87 @@
+name: Docker Image CI
+
+# 触发条件
+on:
+    push:
+        tags:
+            - "v*" # 推送以 "v" 开头的 Tag（如 v1.0.0）时触发
+    workflow_dispatch: # 允许手动触发
+
+# 环境变量
+env:
+    APP_NAME: go-novel # 镜像名称
+    GO_VERSION: "stable" # 指定 Go 版本
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ${{ github.repository }} # github.repository as <account>/<repo>
+
+# 执行任务
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+
+        strategy:
+            matrix:
+                platform: [amd64, arm64] # 定义目标平台
+
+        steps:
+            # 1. 检出代码
+            - name: Checkout code
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0 # 获取完整历史（包含所有标签）
+                  fetch-tags: true # 刷新远程标签
+
+            # 2. 获取最新 Tag 版本
+            - name: Get Latest Tag
+              id: get_tag
+              run: |
+                  LATEST_TAG=$(git describe --tags --abbrev=0)
+                  echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+            # 3. 设置BuildKit Docker容器构建器，以便能够构建多平台镜像并导出缓存
+            - name: Set Up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            # 4. 安装 Go 并编译二进制（按平台动态编译）
+            - name: Install Go
+              uses: actions/setup-go@v6
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Compile Binary
+              run: |
+                  GOOS=linux GOARCH=${{ matrix.platform }} CGO_ENABLED=0 go build -a -trimpath -ldflags="-s -w" -o ${{ env.APP_NAME }}
+
+            # 5. 使用 UPX 压缩（按平台处理）
+            - name: Compress Binary with UPX
+              uses: svenstaro/upx-action@v2
+              with:
+                  files: ${{ env.APP_NAME }}
+                  args: --best --lzma # 压缩参数
+                  strip: false
+
+            # 6. 登录并推送镜像
+            - name: Login to GHCR
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            # 7. 构建多架构 Docker 镜像
+            - name: Build and Push Docker Image
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  push: true
+                  file: Dockerfile # 使用Dockerfile
+                  platforms: linux/${{ matrix.platform }}
+                  tags: |
+                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+                      ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_tag.outputs.latest_tag }}
+                  build-args: |
+                      DOCKER_BUILDKIT=1
+                      TARGETPLATFORM=linux/${{ matrix.platform }}
