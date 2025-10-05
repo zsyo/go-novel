@@ -1,6 +1,10 @@
 # 使用最小化的Alpine Linux作为基础镜像
 FROM alpine:latest
 
+# 设置环境变量
+ARG TARGETOS
+ARG TARGETARCH
+
 # 安装ca-certificates以支持HTTPS请求
 RUN apk --no-cache add ca-certificates
 
@@ -11,7 +15,7 @@ RUN adduser -D -s /bin/sh go-novel
 WORKDIR /app
 
 # 复制二进制文件
-COPY go-novel ./
+COPY build/go-novel_${TARGETOS}_${TARGETARCH} ./go-novel
 
 # 更改文件所有者
 RUN chown -R go-novel:go-novel /app

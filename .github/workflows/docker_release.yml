@@ -22,10 +22,6 @@ jobs:
             contents: read
             packages: write
 
-        strategy:
-            matrix:
-                platform: [amd64, arm64] # 定义目标平台
-
         steps:
             # 1. 检出代码
             - name: Checkout code
@@ -53,13 +49,17 @@ jobs:
 
             - name: Compile Binary
               run: |
-                  GOOS=linux GOARCH=${{ matrix.platform }} CGO_ENABLED=0 go build -a -trimpath -ldflags="-s -w" -o ${{ env.APP_NAME }}
+                  mkdir -p build
+                  GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -a -trimpath -ldflags="-s -w" -o build/${{ env.APP_NAME }}_linux_amd64
+                  GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -a -trimpath -ldflags="-s -w" -o build/${{ env.APP_NAME }}_linux_arm64
 
             # 5. 使用 UPX 压缩（按平台处理）
             - name: Compress Binary with UPX
               uses: svenstaro/upx-action@v2
               with:
-                  files: ${{ env.APP_NAME }}
+                  files: |
+                      build/${{ env.APP_NAME }}_linux_amd64
+                      build/${{ env.APP_NAME }}_linux_arm64
                   args: --best --lzma # 压缩参数
                   strip: false
 
@@ -78,10 +78,7 @@ jobs:
                   context: .
                   push: true
                   file: Dockerfile # 使用Dockerfile
-                  platforms: linux/${{ matrix.platform }}
+                  platforms: linux/amd64, linux/arm64
                   tags: |
                       ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
                       ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_tag.outputs.latest_tag }}
-                  build-args: |
-                      DOCKER_BUILDKIT=1
-                      TARGETPLATFORM=linux/${{ matrix.platform }}

@@ -24,11 +24,14 @@ case $ARCH in
         ;;
 esac
 
+# 创建编译目录
+mkdir -p build
+
 echo "开始构建 $GOOS/$GOARCH 版本的 $PROJECT_NAME..."
 
 # 构建二进制文件（去除调试信息的最小化编译）
 echo "正在编译..."
-CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -a -trimpath -ldflags="-s -w" -o $PROJECT_NAME .
+CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -a -trimpath -ldflags="-s -w" -o build/${PROJECT_NAME}_${GOOS}_${GOARCH} .
 
 # 检查编译是否成功
 if [ $? -ne 0 ]; then
@@ -40,8 +43,8 @@ fi
 if command -v upx &> /dev/null
 then
     echo "正在使用UPX压缩二进制文件..."
-    upx -9 $PROJECT_NAME
-    
+    upx -9 build/${PROJECT_NAME}_${GOOS}_${GOARCH}
+
     # 检查压缩是否成功
     if [ $? -ne 0 ]; then
         echo "UPX压缩失败，但继续构建过程"
@@ -62,7 +65,7 @@ fi
 
 # 清理
 echo "清理临时文件..."
-rm -f ./$PROJECT_NAME
+rm -f ./build/${PROJECT_NAME}_${GOOS}_${GOARCH}
 
 echo "构建完成！"
 echo ""

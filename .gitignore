@@ -40,5 +40,6 @@ go.work
 downloads/
 
 # Build outputs
+build
 go-novel
 *.tar.gz
