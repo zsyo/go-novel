@@ -179,7 +179,9 @@ docker run -d \
 
 ### 使用预构建的Docker镜像
 
-为了方便用户使用，我们已经构建了Docker镜像并推送到了Docker Hub，地址是：[https://hub.docker.com/r/zsyo/go-novel](https://hub.docker.com/r/zsyo/go-novel)
+为了方便使用，已经构建了Docker镜像并推送到了Docker Hub(仅支持linux amd64架构)，地址是：[https://hub.docker.com/r/zsyo/go-novel](https://hub.docker.com/r/zsyo/go-novel)
+
+***新增***: 新增github Action自动构建容器(支持linux amd64架构和arm64架构) [https://ghcr.io/zsyo/go-novel](https://ghcr.io/zsyo/go-novel)
 
 **注意**：如需挂载配置和规则,请通过以下命令下载配置文件压缩包并解压。
 ```bash
@@ -192,42 +194,80 @@ tar -zxvf configs.tar.gz
 
 ```
 # 基本运行
-docker run -d -p 7765:7765 --name go-novel zsyo/go-novel:latest
+  dockerHub版:
+    docker run -d -p 7765:7765 --name go-novel zsyo/go-novel:latest
+  ghcr.io版:
+    docker run -d -p 7765:7765 --name go-novel ghcr.io/zsyo/go-novel:latest
 
 # 挂载本地配置目录
-docker run -d \
-   --user=$(id -u):$(id -g) \
-   -p 7765:7765 \
-   -v $(pwd)/configs:/app/configs \
-   --name go-novel \
-   zsyo/go-novel:latest
+  dockerHub版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/configs:/app/configs \
+      --name go-novel \
+      zsyo/go-novel:latest
+  ghcr.io版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/configs:/app/configs \
+      --name go-novel \
+      ghcr.io/zsyo/go-novel:latest
 
 # 挂载本地下载目录
-docker run -d \
-   --user=$(id -u):$(id -g) \
-   -p 7765:7765 \
-   -v $(pwd)/downloads:/app/downloads \
-   --name go-novel \
-   zsyo/go-novel:latest
+  dockerHub版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/downloads:/app/downloads \
+      --name go-novel \
+      zsyo/go-novel:latest
+  ghcr.io版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/downloads:/app/downloads \
+      --name go-novel \
+      ghcr.io/zsyo/go-novel:latest
 
 # 同时挂载配置和下载目录
-docker run -d \
-   --user=$(id -u):$(id -g) \
-   -p 7765:7765 \
-   -v $(pwd)/configs:/app/configs \
-   -v $(pwd)/downloads:/app/downloads \
-   --name go-novel \
-   zsyo/go-novel:latest
+  dockerHub版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/configs:/app/configs \
+      -v $(pwd)/downloads:/app/downloads \
+      --name go-novel \
+      zsyo/go-novel:latest
+  ghcr.io版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/configs:/app/configs \
+      -v $(pwd)/downloads:/app/downloads \
+      --name go-novel \
+      ghcr.io/zsyo/go-novel:latest
 
 # 同时挂载配置和下载目录（精细挂载配置、规则目录）
-docker run -d \
-   --user=$(id -u):$(id -g) \
-   -p 7765:7765 \
-   -v $(pwd)/configs/config.ini:/app/configs/config.ini \
-   -v $(pwd)/configs/rules:/app/configs/rules \
-   -v $(pwd)/downloads:/app/downloads \
-   --name go-novel \
-   zsyo/go-novel:latest
+  dockerHub版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/configs/config.ini:/app/configs/config.ini \
+      -v $(pwd)/configs/rules:/app/configs/rules \
+      -v $(pwd)/downloads:/app/downloads \
+      --name go-novel \
+      zsyo/go-novel:latest
+  ghcr.io版:
+    docker run -d \
+      --user=$(id -u):$(id -g) \
+      -p 7765:7765 \
+      -v $(pwd)/configs/config.ini:/app/configs/config.ini \
+      -v $(pwd)/configs/rules:/app/configs/rules \
+      -v $(pwd)/downloads:/app/downloads \
+      --name go-novel \
+      ghcr.io/zsyo/go-novel:latest
 ```
 
 ### Docker镜像说明
