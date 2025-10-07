@@ -29,7 +29,7 @@ func (c *Crawler) Search(keyword string) ([]model.SearchResult, error) {
 	ruleManager := rules.GetRuleManager()
 	rule, err := ruleManager.GetRuleById(c.config.Source.ActiveRules, sourceId)
 	if err != nil {
-		return nil, fmt.Errorf("无法加载规则: %v", err)
+		return nil, fmt.Errorf("无法加载规则: %w", err)
 	}
 
 	// 检查规则是否存在
@@ -64,7 +64,7 @@ func (c *Crawler) aggregatedSearch(keyword string) ([]model.SearchResult, error)
 	// 获取可搜索的规则
 	searchableRules, err := ruleManager.GetSearchableRules(c.config.Source.ActiveRules)
 	if err != nil {
-		return nil, fmt.Errorf("加载可搜索规则失败: %v", err)
+		return nil, fmt.Errorf("加载可搜索规则失败: %w", err)
 	}
 
 	// 存储搜索结果
@@ -176,7 +176,7 @@ func (c *Crawler) doSearch(keyword string, rule *model.Rule) ([]model.SearchResu
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求失败: %v", err)
+		return nil, fmt.Errorf("请求失败: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -190,7 +190,7 @@ func (c *Crawler) doSearch(keyword string, rule *model.Rule) ([]model.SearchResu
 	// 解析搜索结果
 	searchResults, err := c.parseSearchResults(resp, rule, keyword)
 	if err != nil {
-		return nil, fmt.Errorf("解析搜索结果失败: %v", err)
+		return nil, fmt.Errorf("解析搜索结果失败: %w", err)
 	}
 
 	fmt.Printf("搜索源 %s (%d) 解析到 %d 条结果\n", rule.Name, rule.ID, len(searchResults))
@@ -208,7 +208,7 @@ func (c *Crawler) parseSearchResultsInternal(resp *http.Response, rule *model.Ru
 	// 读取响应体
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %v", err)
+		return nil, fmt.Errorf("读取响应失败: %w", err)
 	}
 
 	// 将响应体转换为字符串
@@ -217,7 +217,7 @@ func (c *Crawler) parseSearchResultsInternal(resp *http.Response, rule *model.Ru
 	// 重新创建一个io.Reader以便goquery可以读取
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(bodyStr))
 	if err != nil {
-		return nil, fmt.Errorf("解析HTML文档失败: %v", err)
+		return nil, fmt.Errorf("解析HTML文档失败: %w", err)
 	}
 
 	// 获取搜索规则

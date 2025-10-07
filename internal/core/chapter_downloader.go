@@ -176,9 +176,9 @@ exit:
 	err := c.saveBook(ctx, book, chapters)
 	if err != nil {
 		// 发送错误消息到特定客户端
-		errMsg := fmt.Sprintf("保存书籍失败: %v", err)
+		errMsg := fmt.Sprintf("保存书籍失败: %w", err)
 		sendErrorToClient(clientID, errMsg)
-		return fmt.Errorf("保存书籍失败: %v", err)
+		return fmt.Errorf("保存书籍失败: %w", err)
 	}
 
 	// 发送最终的完成消息到特定客户端
@@ -275,5 +275,5 @@ func (c *Crawler) getWithRetry(ctx context.Context, url string) (*http.Response,
 		}
 	}
 
-	return resp, fmt.Errorf("请求失败，已重试%d次: %v", maxRetries, err)
+	return resp, fmt.Errorf("请求失败，已重试%d次: %w", maxRetries, err)
 }

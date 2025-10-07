@@ -26,13 +26,13 @@ func (c *Crawler) saveBook(ctx context.Context, book *model.Book, chapters []mod
 	// 创建下载目录
 	downloadDir, err := util.CreateDownloadDir(cfg.Download.DownloadPath, book.BookName, book.Author, cfg.Download.ExtName)
 	if err != nil {
-		return fmt.Errorf("创建下载目录失败: %v", err)
+		return fmt.Errorf("创建下载目录失败: %w", err)
 	}
 
 	// 保存章节内容
 	err = c.saveChapters(downloadDir, chapters, cfg.Download.ExtName)
 	if err != nil {
-		return fmt.Errorf("保存章节失败: %v", err)
+		return fmt.Errorf("保存章节失败: %w", err)
 	}
 
 	// 根据配置合并文件
@@ -41,13 +41,13 @@ func (c *Crawler) saveBook(ctx context.Context, book *model.Book, chapters []mod
 	case "txt":
 		err = c.mergeToTxt(downloadDir, book, cfg.Download.DownloadPath)
 		if err != nil {
-			return fmt.Errorf("TXT格式合并失败: %v", err)
+			return fmt.Errorf("TXT格式合并失败: %w", err)
 		}
 	case "epub":
 		// EPUB合并实现
 		err = c.mergeToEpub(ctx, downloadDir, book, cfg.Download.DownloadPath)
 		if err != nil {
-			return fmt.Errorf("EPUB格式合并失败: %v", err)
+			return fmt.Errorf("EPUB格式合并失败: %w", err)
 		}
 	default:
 		return fmt.Errorf("不支持的文件格式: %s", extName)
@@ -117,7 +117,7 @@ func (c *Crawler) mergeToTxt(chapterDir string, book *model.Book, downloadPath s
 	// 创建目标文件
 	targetFile, err := os.Create(targetPath)
 	if err != nil {
-		return fmt.Errorf("创建目标文件失败: %v", err)
+		return fmt.Errorf("创建目标文件失败: %w", err)
 	}
 	defer targetFile.Close()
 
@@ -129,7 +129,7 @@ func (c *Crawler) mergeToTxt(chapterDir string, book *model.Book, downloadPath s
 	// 读取章节文件并合并
 	chapterFiles, err := os.ReadDir(chapterDir)
 	if err != nil {
-		return fmt.Errorf("读取章节目录失败: %v", err)
+		return fmt.Errorf("读取章节目录失败: %w", err)
 	}
 
 	// 按文件名排序
@@ -268,7 +268,7 @@ func (c *Crawler) mergeToEpub(ctx context.Context, chapterDir string, book *mode
 	// 读取章节文件
 	chapterFiles, err := os.ReadDir(chapterDir)
 	if err != nil {
-		return fmt.Errorf("读取章节目录失败: %v", err)
+		return fmt.Errorf("读取章节目录失败: %w", err)
 	}
 
 	// 按文件名排序
@@ -425,7 +425,7 @@ p {
 	// 保存EPUB文件
 	err = epub.Write(targetPath)
 	if err != nil {
-		return fmt.Errorf("保存EPUB文件失败: %v", err)
+		return fmt.Errorf("保存EPUB文件失败: %w", err)
 	}
 
 	fmt.Printf("书籍已保存为EPUB文件: %s\n", targetPath)

@@ -260,14 +260,14 @@ func (c *Crawler) parseToc(bookUrl string, rule *model.Rule) ([]model.Chapter, e
 
 	resp, err := client.Get(tocUrl)
 	if err != nil {
-		return nil, fmt.Errorf("请求目录页失败: %v", err)
+		return nil, fmt.Errorf("请求目录页失败: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// 解析HTML文档
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("解析HTML文档失败: %v", err)
+		return nil, fmt.Errorf("解析HTML文档失败: %w", err)
 	}
 
 	// 提取章节链接

@@ -32,7 +32,7 @@ func CreateDownloadDir(basePath, bookName, author, ext string) (string, error) {
 	// 创建目录
 	err := os.MkdirAll(dirPath, 0755)
 	if err != nil {
-		return "", fmt.Errorf("创建目录失败: %v", err)
+		return "", fmt.Errorf("创建目录失败: %w", err)
 	}
 
 	return dirPath, nil
@@ -42,4 +42,18 @@ func CreateDownloadDir(basePath, bookName, author, ext string) (string, error) {
 func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
+}
+
+// WriteFile 写入文件内容
+func WriteFile(fp string, content []byte, perm os.FileMode) error {
+	err := os.MkdirAll(filepath.Dir(fp), 0755)
+	if err != nil {
+		return fmt.Errorf("创建目录失败: %w", err)
+	}
+
+	err = os.WriteFile(fp, content, perm)
+	if err != nil {
+		return fmt.Errorf("写入文件失败: %w", err)
+	}
+	return nil
 }

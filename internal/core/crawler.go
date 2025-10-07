@@ -89,25 +89,25 @@ func (c *Crawler) Crawl(bookUrl string) error {
 	ruleManager := rules.GetRuleManager()
 	rule, err := ruleManager.GetRuleById(c.config.Source.ActiveRules, sourceId)
 	if err != nil || rule == nil {
-		return fmt.Errorf("无法加载规则: %v (源ID: %d)", err, sourceId)
+		return fmt.Errorf("无法加载规则: %w (源ID: %d)", err, sourceId)
 	}
 
 	// 解析书籍信息
 	book, err := c.parseBookInfo(bookUrl, rule)
 	if err != nil {
-		return fmt.Errorf("解析书籍信息失败: %v", err)
+		return fmt.Errorf("解析书籍信息失败: %w", err)
 	}
 
 	// 解析章节目录
 	chapters, err := c.parseToc(bookUrl, rule)
 	if err != nil {
-		return fmt.Errorf("解析章节目录失败: %v", err)
+		return fmt.Errorf("解析章节目录失败: %w", err)
 	}
 
 	// 下载章节
 	err = c.downloadChapters(book, chapters, rule)
 	if err != nil {
-		return fmt.Errorf("下载章节失败: %v", err)
+		return fmt.Errorf("下载章节失败: %w", err)
 	}
 
 	return nil
