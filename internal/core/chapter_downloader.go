@@ -176,7 +176,7 @@ exit:
 	err := c.saveBook(ctx, book, chapters)
 	if err != nil {
 		// 发送错误消息到特定客户端
-		errMsg := fmt.Sprintf("保存书籍失败: %w", err)
+		errMsg := fmt.Sprintf("保存书籍失败: %v", err)
 		sendErrorToClient(clientID, errMsg)
 		return fmt.Errorf("保存书籍失败: %w", err)
 	}
@@ -232,11 +232,8 @@ func (c *Crawler) getWithRetry(ctx context.Context, url string) (*http.Response,
 		maxRetries = c.config.Crawl.MaxRetries
 	}
 
-	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := c.NewHTTPClinet()
-
 	// 初始尝试
-	resp, err = client.Get(url)
+	resp, err = c.client.Get(url)
 	if err == nil && resp.StatusCode == 200 {
 		return resp, nil
 	}
@@ -269,7 +266,7 @@ func (c *Crawler) getWithRetry(ctx context.Context, url string) (*http.Response,
 		fmt.Printf("重试下载章节 %s (第 %d/%d 次)\n", url, i+1, maxRetries)
 
 		// 重新发起请求，使用独立的客户端
-		resp, err = client.Get(url)
+		resp, err = c.client.Get(url)
 		if err == nil && resp.StatusCode == 200 {
 			return resp, nil
 		}

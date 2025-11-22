@@ -171,10 +171,7 @@ func (c *Crawler) doSearch(keyword string, rule *model.Rule) ([]model.SearchResu
 	}
 
 	// 发起请求
-	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := c.NewHTTPClinet()
-
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("请求失败: %w", err)
 	}
@@ -397,10 +394,7 @@ func (c *Crawler) parseSearchResultsInternal(resp *http.Response, rule *model.Ru
 				pageReq.Header.Set("Referer", resp.Request.URL.String())
 
 				// 发送请求
-				// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-				client := c.NewHTTPClinet()
-
-				pageResp, err := client.Do(pageReq)
+				pageResp, err := c.client.Do(pageReq)
 				if err != nil {
 					fmt.Printf("Debug: 分页请求失败: %v\n", err)
 					continue

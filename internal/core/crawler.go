@@ -60,21 +60,6 @@ func NewCrawler(cfg *config.Config) *Crawler {
 	}
 }
 
-// NewHTTPClinet 创建一个网络客户端
-func (c Crawler) NewHTTPClinet() *http.Client {
-	// 为每次请求创建独立的HTTP客户端，避免共用超时设置
-	client := &http.Client{
-		Timeout: c.client.Timeout,
-	}
-	if c.client.Transport != nil {
-		client.Transport = c.client.Transport
-	}
-	if c.client.Jar != nil {
-		client.Jar = c.client.Jar
-	}
-	return client
-}
-
 // Crawl 开始爬取书籍
 func (c *Crawler) Crawl(bookUrl string) error {
 	// 使用配置中的源ID
